@@ -1,6 +1,6 @@
 {
   "name": "sequence-viz",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "homepage": "https://sigfried.github.io/blog/sequence-viz",
   "description": "An integrated set of visualizations for event data.",
   "keywords": [
@@ -29,7 +29,7 @@
     "url": "git@github.com:Sigfried/sequence-viz.git"
   },
   "dependencies": {
-    "d3": "3.1.6",
+    "d3": "3.3.13",
     "underscore": "1.4.4",
     "underscore-unchained": "0.1.1",
     "supergroup": "0.0.1",
