@@ -7,6 +7,7 @@ nv.models.legend = function() {
   var margin = {top: 5, right: 0, bottom: 5, left: 0}
     , width = 400
     , height = 20
+    , label
     , getKey = function(d) { return d.key }
     , color = nv.utils.defaultColor()
     , align = true
@@ -29,7 +30,18 @@ nv.models.legend = function() {
       // Setup containers and skeleton of chart
 
       var wrap = container.selectAll('g.nv-legend').data([data]);
-      var gEnter = wrap.enter().append('g').attr('class', 'nvd3 nv-legend').append('g');
+      var gEnter = wrap.enter().append('g').attr('class', 'nvd3 nv-legend').append('g')
+      if (label) {
+          gEnter
+            .append('g')
+                .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+            .append('text')
+                .text(label)
+                    .attr('dy', '.32em')
+                    .attr('dx', '-1em')
+                    .attr('text-anchor','end')
+                    .style('font-weight','bold')
+      }
       var g = wrap.select('g');
 
       wrap.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
@@ -260,6 +272,11 @@ nv.models.legend = function() {
   chart.radioButtonMode = function(_) {
     if (!arguments.length) return radioButtonMode;
     radioButtonMode = _;
+    return chart;
+  };
+  chart.label = function(_) {
+    if (!arguments.length) return label;
+    label = _;
     return chart;
   };
 
