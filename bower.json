@@ -1,0 +1,38 @@
+{
+  "name": "sequence-viz",
+  "version": "0.1.1",
+  "homepage": "https://sigfried.github.io/blog/sequence-viz",
+  "description": "An integrated set of visualizations for event data.",
+  "keywords": [
+    "time",
+    "events",
+    "sequence",
+    "temporal",
+    "temporal summary",
+    "lifeflow",
+    "D3",
+    "d3.js",
+    "visualization"
+  ],
+  "author": {
+    "name": "Sigfried Gold",
+    "web": "http://www.sigfried.org"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://sigfried.mit-license.org/"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Sigfried/sequence-viz.git"
+  },
+  "dependencies": {
+    "d3": "3.1.6",
+    "underscore": "1.4.4",
+    "underscore-unchained": "0.1.1",
+    "supergroup": "0.0.1",
+    "jquery": "1.9.1"
+  }
+}
