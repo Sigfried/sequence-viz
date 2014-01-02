@@ -1,0 +1,42 @@
+{
+  "name": "sequence-viz",
+  "version": "0.0.1",
+  "description": "An integrated set of visualizations for event data.",
+  "keywords": [
+    "groups",
+    "visualization"
+  ],
+  "author": {
+    "name": "Sigfried Gold",
+    "web": "http://www.sigfried.org"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://sigfried.mit-license.org/"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Sigfried/lifeflow.git"
+  },
+  "dependencies": {
+    "d3": "3.1.6",
+    "underscore": "1.4.4",
+    "underscore-unchained": "0.0.1",
+    "supergroup": "0.0.1"
+  },
+  "devDependencies": {
+    "karma-script-launcher": "~0.1.0",
+    "karma-chrome-launcher": "~0.1.1",
+    "karma-html2js-preprocessor": "~0.1.0",
+    "karma-firefox-launcher": "~0.1.2",
+    "karma-jasmine": "~0.1.4",
+    "karma-coffee-preprocessor": "~0.1.1",
+    "requirejs": "~2.1.9",
+    "karma-requirejs": "~0.2.0",
+    "karma-phantomjs-launcher": "~0.1.1",
+    "karma": "~0.10.8",
+    "jsdoc": "<=3.3.0"
+  }
+}
