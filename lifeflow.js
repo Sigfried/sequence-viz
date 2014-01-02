@@ -1,5 +1,13 @@
+/**
+ * @file Defines the lifeflow chart for {@link sequence-viz}
+ * @author Sigfried Gold <sigfried@sigfried.org>
+ * @license http://sigfried.mit-license.org/
+ * Don't trust this documentation yet. It's just beginning to be
+ * written.
+ */
 'use strict';
-nv.models.lifeflow = function () {
+var lifeflowChart = function () {
+    /** @namespace lifeflowChart */
 
     //============================================================
     // Public Variables with Default Settings
@@ -16,13 +24,15 @@ nv.models.lifeflow = function () {
         , entityIdProp = null,
         eventNameProp = null,
         eventNames = null,
-        eventOrder = null,
+        eventOrder = [],
+        unitProp,
+        timeUnit,
         alignChoices,
         startDateProp = null,
         endDateField = null,
         defaultDuration = null,
         alignmentLineWidth = 28,
-        eventNodeWidth = 50,
+        eventNodeWidth = 0,
         endNodeWidth = 0,
         width = 960,
         height = 500,
@@ -30,50 +40,26 @@ nv.models.lifeflow = function () {
         , x = d3.scale.linear()
         , y = d3.scale.linear()
         , relativeX 
-        , color = nv.utils.defaultColor()
+        //, color = nv.utils.defaultColor()
+        , color = d3.scale.category20()
+        , alignBy
+        , dispatch = d3.dispatch('eventNodeMouseover');
+        /*
         , dispatch = d3.dispatch('chartClick', 'elementClick', 
                 'elementDblClick', 'elementMouseover', 'elementMouseout',
                 'toggleEvt','alignBy','selectRecs','doneDrawing'),
-        alignBy
+        */
             ;
     //============================================================
     function chart(selection) {
-        selection.each(function (data) {
-            edata = evtData()
-                        .entityIdProp(chart.entityIdProp())
-                        .eventNameProp(chart.eventNameProp())
-                        .startDateProp(chart.startDateProp())
-            if (!eventNames) setEventNames(data);
-            if (!timelineData) timelineData = edata.timelines(data);
-            var lifeflowNodes;
-            if (chart.alignBy() === 'Start' || !chart.alignBy()) {
-                var startRecs = _.chain(timelineData)
-                                    .pluck('records')
-                                    .map(_.first)
-                                    .value();
-                lifeflowNodes = makeLifeflowNodes(startRecs,
-                    function(d) { return d.next() });
-                //lifeflowNodes.shift();
-            } else if (chart.alignBy() === 'End') {
-                var startRecs = _.chain(timelineData)
-                                    .pluck('records')
-                                    .map(_.last)
-                                    .value();
-                lifeflowNodes = makeLifeflowNodes(startRecs,
-                    function(d) { return d.prev() });
-            } else {
-                var startRecs = _.chain(timelineData.data())
-                                    .filter(function(d) {
-                                        return d[eventNameProp] === chart.alignBy() 
-                                    })
-                                    .value();
-                var lifeflowNodesRight = makeLifeflowNodes(startRecs,
-                    function(d) { return d.next() });
-                var lifeflowNodesLeft = makeLifeflowNodes(startRecs,
-                    function(d) { return d.prev() }, true);
-                //lifeflowNodesLeft = [];
-                lifeflowNodes = lifeflowNodesLeft.concat(lifeflowNodesRight);
-            }
+        selection.each(function (lifeflowNodes) {
+            x = d3.scale.linear().range([0,width])
+            y = d3.scale.linear()
+                .range([0,height])
+                .domain([0,lifeflowNodes
+                    .where({depth:0})
+                    .pluck('dy')
+                    .reduce(function(p,c) { return p + c }) - 1])
             x.domain([
                             d3.min([0].concat(lifeflowNodes.map(function(d) { 
                                 return d.x + d.dx
@@ -85,29 +71,23 @@ nv.models.lifeflow = function () {
             relativeX = d3.scale.linear()
                                 .range(x.range())
                                 .domain([0, x.domain()[1] - x.domain()[0]]);
-            var availableWidth = width - margin.left - margin.right,
-                availableHeight = height - margin.top - margin.bottom,
-                container = d3.select(this);
+            var container = d3.select(this);
             var nodes = container.selectAll('g.event-node')
                 .data(lifeflowNodes
-                    //_(lifeflowNodes).filter(function (d) { return d.dx !== 0 })
                     , function (d) {
-                        //return _.uniqueId('nodups')
-                        //console.log(d.namePath() + (d.dx > 0));
                         var id = chart.alignBy() + d.namePath({noRoot:false}) + d.backwards
-                        //if (d.joinId && d.joinId !== id) throw new Error('weird!')
                         d.joinId = id;
                         return id;
                         // paths can be the same on either
-                        // side of an alignment, so include dx
+                        // side of an alignment, so include backwards flag
                     })
-            //nodes.exit().selectAll('rect').attr('stroke','red');
-            //y.domain([0, timelineData.length]);
             y.domain([0, _(lifeflowNodes).reduce(
                 function(memo,node){
                     return Math.max(memo, node.y + node.dy)
                 },0)]);
 
+            enterNodes();
+            return
             var updateInterval = 10; // miliseconds/jump
             var xExtent = x.range()[1] - x.range()[0];
             var exitTime = nodes.exit().size() ? 1000 : 0;
@@ -123,7 +103,6 @@ nv.models.lifeflow = function () {
                 if (jumpNum++ >= jumps) {
                     clearInterval(timerId);
                     doneSliding = true;
-                    enterNodes();
                     nodes.each(function(d) {
                         d.domNode = this;
                     })
@@ -185,13 +164,14 @@ nv.models.lifeflow = function () {
                         .attr('path', function (d) {
                             return d.namePath({noRoot:false}) // don't need noRoot anymore
                         })
-                        /* try creating in final position
                         .attr('transform', function (d) {
-                            return 'translate(0,' + y(d.y) + ')'
+                            return 'translate(' + x(d.x) + ',' + y(d.y) + ')'
                         })
-                        */
-                        .on("mouseover", gMouseover)
-                        .on("mouseout", gMouseout)
+                        .on("mouseover", function(d,i) {
+                            dispatch.eventNodeMouseover(chart, this, d, i);
+                        })
+                        //.on("mouseover", gMouseover)
+                        //.on("mouseout", gMouseout)
                 var newRects = enteringGs
                     //.filter(function(d) { return d.depth !== 0 })
                     .append('rect')
@@ -199,16 +179,18 @@ nv.models.lifeflow = function () {
                         .attr('fill', function (d) {
                             return color(d.valueOf())
                         })
-                        .attr('width', 0)
-                    .on("mouseover", rectMouseover)
-                    .on("mouseout", rectMouseout)
-                        // transform to actual width!!!
-                        // .attr('width', relativeX(eventNodeWidth))
-                        /*
+                        .attr('x', function(d) { return relativeX(d.dx)})
+                        .attr('width', relativeX(eventNodeWidth))
                         .attr('height', function (d) {
+                            //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
                             return y(d.dy)
                         })
-                        */
+                        //.attr('y', function(d) { return y(d.y) })
+                        .attr('height', function(d) { return y(d.dy) })
+                    //.on("mouseover", rectMouseover)
+                    //.on("mouseout", rectMouseout)
+                return;
+                /*
                 var fillRects = enteringGs
                     .filter(function(d) { return d.parent })
                     .append('rect')
@@ -226,106 +208,45 @@ nv.models.lifeflow = function () {
                         })
                     .on("mouseover", rectMouseover)
                     .on("mouseout", rectMouseout)
+                */
                 var fmt = d3.format('5.0f');
                 nodes.attr('transform', function (d) {
                             var xpos = x(d.x)
                             return 'translate(' + xpos + ',' + y(d.y) + ')'
                         })
                 nodes.select('rect.event-node')
-                    //.transition().duration(exitTime)
                     .attr('height', function (d) {
                         //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
                         return y(d.dy)
                     })
                 nodes.select('rect.gap-fill')
-                    //.transition().duration(exitTime)
                     .attr('height', function (d) {
                         //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
                         return y(d.dy)
                     })
-                /*  moved up to creation
-                container.selectAll('g.event-node')
-                        .attr('transform', function (d) {
-                            var xpos = x(d.x)
-                            return 'translate(' + xpos + ',' + y(d.y) + ')'
-                            return 'translate(0,' + y(d.y) + ')'
-                        })
-                        */
-return;
-                var gapDays = 0;
-                nodes.select('rect.gap-fill')
-                    //.transition().delay(2000).duration(2000)
-                    .attr('width', function (d) {
-                        return Math.max(relativeX(Math.abs(d.parent.dx) 
-                                - eventNodeWidth - gapDays * 2), 0);
+                    .attr('x', function(d) { 
+                        var shift = d.backwards ?  d.parent.dx :
+                                -d.parent.dx + eventNodeWidth;
+                        return relativeX(shift)
                     })
-                    .attr('x', function (d) {
-                        if (d.parent.backwards) {
-                            return relativeX(gapDays);
-                        } else {
-                            return relativeX(-d.parent.dx +  gapDays);
-                        }
+                    .attr('width', function(d) { 
+                        return Math.max(relativeX( Math.abs(d.parent.dx) 
+                                - eventNodeWidth), 0);
                     })
+                    //.attr('y', function(d) { return y(d.y) })
+                    .attr('height', function(d) { return y(d.dy) })
             }
-            var gapDays = 0;
-            var bloomTime = 3000;
-            var distance = relativeX.range()[1];
-            function bloom(bloomingNode, delay) {
-                var sel = d3.select(bloomingNode).select('rect.gap-fill');
-                var datum = bloomingNode.__data__;
-                //console.log(datum.backwards);
-                var dur = 0;
-                if (sel.size()) {
-                    var width = Math.max(relativeX(
-                                Math.abs(datum.parent.dx) 
-                                - eventNodeWidth - gapDays * 2), 0);
-                    dur = width * bloomTime / distance;
-                    if (datum.backwards) {
-                        sel.attr('transform', 'scale(-1,1)')
-                        //sel.attr('x',0)
-                        sel.attr('x', relativeX(datum.parent.dx + 
-                                    0*eventNodeWidth - gapDays));
-                        //sel.attr('x', relativeX(gapDays+ eventNodeWidth))
-                        sel.transition().delay(delay).duration(dur)
-                            .ease('linear')
-                        .attr('width', width)
-                        //.attr('x', relativeX(gapDays+ eventNodeWidth))
-                    } else {
-                        sel.attr('x', relativeX(-datum.parent.dx + eventNodeWidth + gapDays));
-                        //sel.attr('transform', 'scale(-1,-1)')
-                        //sel.attr('x', relativeX(gapDays+ eventNodeWidth))
-                        sel.transition().delay(delay).duration(dur)
-                            .ease('linear')
-                        .attr('width', width)
-                    }
-                }
-                d3.select(bloomingNode).select('rect.event-node')
-                    .transition().delay(delay + dur)
-                    .attr('width', relativeX(eventNodeWidth))
-                _.each(datum.children, function(d) {
-                    bloom(d.domNode, delay + dur);
-                })
-            }
-            /*
-            container.selectAll('rect.event-node')
-                .attr('height', function (d) {
-                    //if (d.namePath({noRoot:true})==="Pending/Open") 
-                    console.log(d.dy + '->' + y(d.dy) + '   ' + this.className.baseVal + '   ' + d.namePath())
-                    return y(d.dy)
-                })
-            */
-            chart.dispatch.on('toggleEvt', function (evtName) {
-                evtName.disabled = !evtName.disabled;
-                var recs = _(data).filter(function(d) {
-                    return !eventNames.lookup(d[eventNameProp]).disabled;
-                });
-                timelineData = edata.makeTimelines(recs);
-            });
-            chart.dispatch.on('selectRecs', function (recs) {
-                timelineData = edata.makeTimelines(recs);
-            });
+        });
+        return chart;
+    }
+
+    //============================================================
+    // mouseover code. tooltips broken for now
+    // distribution lines still working
+    //------------------------------------------------------------
 
             function rectMouseover(d, i) {
+                console.log("not connected right now")
                 d3.select(this)
                     .classed('hover', true)
                 var path = d.namePath({noRoot:false})
@@ -350,21 +271,6 @@ return;
             function rectMouseout(d, i) {
                 dispatch.elementMouseout();
             }
-            function TOOLTIP_HOLD_gMouseover(d, i) {
-                d3.select(this)
-                    .classed('hover', true)
-                var path = d.namePath({noRoot:false})
-                var avgDays = d3.mean(_(d.records).invoke('fromPrev'));
-
-                var tt = path + ', ' + d.records.length + ' timelines';
-                tt += ', mean days: ' + avgDays;
-                dispatch.elementMouseover({
-                    value: d,
-                    text: tt,
-                    idx: i,
-                    e: d3.event
-                });
-            }
             function gMouseout(d, i) {
                 d3.select(this).selectAll('rect.gap-fill').attr('opacity',.5)
                 var path = d3.select(this).selectAll('path');
@@ -384,6 +290,7 @@ return;
             }
             var nodesWithDistributionsShowing = [];
             function gMouseover(lfnode, i) {
+                throw new Error("shouldn't be working now");
                 /*
                 d3.selectAll('rect')
                     .transition().duration(700)
@@ -407,7 +314,7 @@ return;
                     nodesWithDistributionsShowing.push(lfnode);
                 }
                 d3.select(this).selectAll('rect.gap-fill').attr('opacity',1)
-                var recs, xFunc, durationFunc;
+                var recs, xFunc;
                 if (!lfnode.parent) {
                     recs = [];
                 } else if (lfnode.backwards) {
@@ -419,16 +326,13 @@ return;
                             return relativeX(-lfnode.parent.dx -
                                     d.toNext())
                     };
-                    durationFunc = 'toNext';
                 } else {
                     recs = lfnode.records.sort(function (a, b) {
                         return a.fromPrev() - b.fromPrev();
                     });
                     xFunc = function(d) {
-                            return relativeX(-lfnode.parent.dx +
-                                    d.fromPrev() + eventNodeWidth)
+                        return relativeX(d.fromPrev())
                     };
-                    durationFunc = 'fromPrev';
                 }
                 var line = d3.svg.line()
                     .x(xFunc)
@@ -460,7 +364,7 @@ return;
                             value: d,
                             text: d.timeline() + ': ' + d.eventName() + 
                                 ' - ' + d.toNext() + ' of ' +
-                                d.timeline().duration() + ' total days',
+                                d.timeline().duration() + ' total ' + timeUnit,
                             series: _(d.timeline().records).map(function(rec) {
                                 return {
                                     key: rec.eventName(),
@@ -486,85 +390,9 @@ return;
                     nodesWithDistributionsShowing.push(lfnode);
                 }
             }
-
-            return;
-            rects
-                .on('mouseout', function (d, i) {
-                    d3.select(this).classed('hover', false);
-                    dispatch.elementMouseout({
-                        value: getY(d, i),
-                        point: d,
-                        series: data[d.series],
-                        pointIndex: i,
-                        seriesIndex: d.series,
-                        e: d3.event
-                    });
-                })
-                .on('click', function (d, i) {
-                    dispatch.elementClick({
-                        value: getY(d, i),
-                        point: d,
-                        series: data[d.series],
-                        pos: [
-                            x(getX(d, i)),
-                            y(getY(d, i)) + (y.rangeBand() * d.series + .5 / data.length)
-                        ], // TODO: Figure out why the value appears to be shifted
-                        pointIndex: i,
-                        seriesIndex: d.series,
-                        e: d3.event
-                    });
-                    d3.event.stopPropagation();
-                })
-                .on('dblclick', function (d, i) {
-                    dispatch.elementDblClick({
-                        value: getY(d, i),
-                        point: d,
-                        series: data[d.series],
-                        pos: [
-                            x(getX(d, i)),
-                            y(getY(d, i)) + (y.rangeBand() * d.series + .5 / data.length)
-                        ],
-                        pointIndex: i,
-                        seriesIndex: d.series,
-                        e: d3.event
-                    });
-                    d3.event.stopPropagation();
-                });
-
-
-        });
-        return chart;
-    }
-    function setEventNames(data) {
-        eventNames = _.supergroup(data, eventNameProp)
-                .sort(function(a,b) {
-                    return eventOrder.indexOf(a.toString()) -
-                           eventOrder.indexOf(b.toString())
-                });
-        if (eventOrder) {
-            if (_.difference(eventNames.rawValues(), eventOrder).length) {
-                throw new Error("found unexpected eventNames")
-            }
-        } else {
-            eventOrder = eventNames.rawValues();
-        }
-        alignChoices = [new String('Start'),
-                        new String('End') ]
-                .concat(eventNames.map(function(d) { 
-                    return new String(d.valueOf())}));
-        _.each(alignChoices, function(d) { d.disabled = true });
-        alignChoices[0].disabled = false;
-        //chart.eventNames(eventNames); // not necessary
-        var evtColor = d3.scale.category20()
-            .domain(eventNames.rawValues().concat(['Start','End']));
-            //.domain(eventNames.rawValues().concat(['Start','End']));
-        chart.color(evtColor);
-    }
-
     //============================================================
     // Expose Public Variables
     //------------------------------------------------------------
-
     chart.dispatch = dispatch;
 
     chart.entityIdProp = function (_) {
@@ -647,7 +475,8 @@ return;
 
     chart.color = function (_) {
         if (!arguments.length) return color;
-        color = nv.utils.getColor(_);
+        //color = nv.utils.getColor(_);
+        color = _;
         return chart;
     };
 
@@ -686,118 +515,31 @@ return;
     chart.alignmentLineWidth = function(_) {
         if (!arguments.length) return alignmentLineWidth;
         alignmentLineWidth = _;
-        return lifeflow;
+        return chart;
     };
     chart.eventNodeWidth = function(_) {
         if (!arguments.length) return eventNodeWidth;
         eventNodeWidth = _;
-        return lifeflow;
+        return chart;
     };
     chart.endNodeWidth = function(_) {
         if (!arguments.length) return endNodeWidth;
         endNodeWidth = _;
-        return lifeflow;
+        return chart;
     };
-
-    function makeGetterSetter(obj, prop) { // might be nice
-        // but lose the link to enclosed public vars
-        var closureVals = {};
-        obj[prop] = function (_) {
-            if (!arguments.length) console.log('getting ' + prop + ': ' + closureVals[prop]);
-            if (!arguments.length) return closureVals[prop];
-            console.log('setting ' + prop + ': ' + _);
-            closureVals[prop] = _;
-            return obj;
-        };
-    }
-    //============================================================
-
-    // not sure where this belongs. allowed it to use closure vars from
-    // chart right now
-    function endNode(parent) {
-        var enode = {
-            parent:parent,
-            next: function() { 
-                return this },
-            prev: function() { return this }
-        };
-        enode[eventNameProp] = 'END_NODE';
-        return enode;
-    }
-    var makeLifeflowNodes = function(startRecs, nextFunc, backwards, maxDepth) {
-        var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
-        function preGroupRecsHook(records) { // group next records, not the ones we start with
-            return _.chain(records)
-                            //.tap(function(d) { console.log(d) })
-                            .filter(nextFunc)
-                            .map(nextFunc)
-                            .value();
-        }
-        function addChildren(list, notRoot) {
-            if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
-                return;
-            if (!notRoot) {
-                list = _.supergroup(startRecs, eventNameProp);
-                list.sort(function(a,b) {
-                            return b.records.length - a.records.length
-                        })
-            }
-            _.each(list, function(d) { 
-                //d.depth = d.parent ? d.parent.depth + 1 : 0;
-                d.extendGroupBy(eventNameProp, {
-                    preGroupRecsHook:preGroupRecsHook,
-                    childProp:'children'})
-                addChildren(d.children, true);
-                d.children.sort(function(a,b) {
-                            return b.records.length - a.records.length
-                        })
-                })
-            return list;
-        }
-        var lfnodes = addChildren(startRecs);
-        lfnodes = position({children:lfnodes,records:[]}).children;
-        return lfnodes.flattenTree();
-
-
-        function rectWidth(recs) {
-            return d3.mean(recs.map(function(d) { 
-                return d.timeTo(nextFunc(d))
-            }));
-        }
-        function position(lfnode, yOffset) {
-            var children = lfnode.children;
-            if (lfnode.parent) {
-                lfnode.x = lfnode.parent.x + lfnode.parent.dx 
-                    //+ eventNodeWidth * (!negative || -1);;
-                lfnode.y = lfnode.parent.y;
-            } else {
-                lfnode.x = alignmentLineWidth * (!backwards || -1);
-                lfnode.y = 0;
-            }
-            lfnode.y += (yOffset || 0);
-            lfnode.dx = rectWidth(lfnode.records) + eventNodeWidth;
-            lfnode.dy = lfnode.records.length;
-            if (children && (n = children.length)) {
-                var i = -1, c, yOffset = 0, n;
-                while (++i < n) {
-                    position(c = children[i], yOffset)
-                    yOffset += c.dy;
-                }
-            }
-            lfnode.backwards = !!backwards;
-            return lfnode;
-        }
-        var nodes = _.supergroup(startRecs, eventNameProp, {
-                        preGroupRecsHook: preGroupRecsHook,
-                        postGroupGroupsHook: postGroupGroupsHook,
-                        dimName: groupKeyName,
-                        //postGroupValHook: postGroupValHook,
-                        recurse: childrenFunc,
-                        childProp: 'children'
-                    });
-        nodes = position({children:nodes,records:[]}).children;
-        return nodes.flattenTree();
-    }
-    chart.makeLifeflowNodes = makeLifeflowNodes;
+    chart.unitProp = function(_) {
+        if (!arguments.length) return unitProp;
+        unitProp = _;
+        timeUnit = 'units';
+        if (unitProp === 1) timeUnit = 'miliseconds';
+        if (unitProp === 1000) timeUnit = 'seconds';
+        if (unitProp === 1000*60) timeUnit = 'minutes';
+        if (unitProp === 1000*60*60) timeUnit = 'hours';
+        if (unitProp === 1000*60*60*24) timeUnit = 'days';
+        if (unitProp === 1000*60*60*24*7) timeUnit = 'weeks';
+        if (unitProp === 1000*60*60*24*365.25) timeUnit = 'years';
+        if (unitProp === 1000*60*60*24*365.25/12) timeUnit = 'months';
+        return chart;
+    };
     return chart;
 }

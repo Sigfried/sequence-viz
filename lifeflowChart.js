@@ -493,7 +493,7 @@ nv.models.lifeflowChart = function () {
     chart.yAxis = yAxis;
     chart.xAxis = xAxis;
 
-    d3.rebind(chart, lifeflow, 'clipEdge', 'id', 'delay', 'showValues', 'valueFormat', 'barColor', 'entityIdProp', 'eventNameProp', 'eventOrder', 'startDateProp', 'endDateField', 'defaultDuration', 'color', 'eventNames', 'alignBy', 'xAxis');
+    d3.rebind(chart, lifeflow, 'clipEdge', 'id', 'delay', 'showValues', 'valueFormat', 'barColor', 'entityIdProp', 'eventNameProp', 'eventOrder', 'startDateProp', 'endDateField', 'defaultDuration', 'color', 'eventNames', 'alignBy', 'xAxis','unitProp');
     chart.margin = function (_) {
         if (!arguments.length) return margin;
         margin.top = typeof _.top != 'undefined' ? _.top : margin.top;
