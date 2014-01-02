@@ -220,7 +220,7 @@ var timelineChart = function () {
                 })
                 return;
             } else if (alignBy === "Icicle") {
-                var evtNames = enlightenedData.group(timelineData
+                var evtNames = _.supergroup(timelineData
                         .pluck('records').flatten(), eventNameProp)
                     .sort(function(a,b) {
                         return eventOrder.indexOf(a.toString()) -
@@ -521,7 +521,7 @@ var timelineChart = function () {
         return chart;
     }
     function setEventNames(data) {
-        eventNames = enlightenedData.group(data, eventNameProp)
+        eventNames = _.supergroup(data, eventNameProp)
                 .sort(function(a,b) {
                     return eventOrder.indexOf(a.toString()) -
                            eventOrder.indexOf(b.toString())

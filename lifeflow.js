@@ -536,7 +536,7 @@ return;
         return chart;
     }
     function setEventNames(data) {
-        eventNames = enlightenedData.group(data, eventNameProp)
+        eventNames = _.supergroup(data, eventNameProp)
                 .sort(function(a,b) {
                     return eventOrder.indexOf(a.toString()) -
                            eventOrder.indexOf(b.toString())
@@ -737,7 +737,7 @@ return;
             if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
                 return;
             if (!notRoot) {
-                list = enlightenedData.group(startRecs, eventNameProp);
+                list = _.supergroup(startRecs, eventNameProp);
                 list.sort(function(a,b) {
                             return b.records.length - a.records.length
                         })
@@ -787,7 +787,7 @@ return;
             lfnode.backwards = !!backwards;
             return lfnode;
         }
-        var nodes = enlightenedData.group(startRecs, eventNameProp, {
+        var nodes = _.supergroup(startRecs, eventNameProp, {
                         preGroupRecsHook: preGroupRecsHook,
                         postGroupGroupsHook: postGroupGroupsHook,
                         dimName: groupKeyName,

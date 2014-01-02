@@ -129,7 +129,7 @@ var evtData = function() {
     }
     */
     edata.setEventNames = function(nameList, disabledList) {
-        eventNameArray = enlightenedData.group(
+        eventNameArray = _.supergroup(
             _(nameList).map(function(d) {return {name:d}}),'name');
         if (disabledList) {
             _(disabledList).each(function(d) {
@@ -151,7 +151,7 @@ var evtData = function() {
         if (eventNameArray) {
             return eventNameArray;
         }
-        eventNameArray = enlightenedData.group(origDataRef, eventNameProp);
+        eventNameArray = _.supergroup(origDataRef, eventNameProp);
         _(eventNameArray).each(function(d) {
             _.extend(d, eventName.prototype);
         });
@@ -259,7 +259,7 @@ var evtData = function() {
         //}
         */
         var idFunc = function(d) { return d.entityId() };
-        var timelineArray = enlightenedData.group(rawRecs, idFunc);
+        var timelineArray = _.supergroup(rawRecs, idFunc);
         _(timelineArray).each(function (tl, i) {
             _.extend(tl, timeline.prototype);
             //var addTimelineToRec = curry3(addCalcField)('timeline')(function(){return tl});
@@ -315,7 +315,7 @@ var evtData = function() {
         }
         */
         timelineArray.sort = function(func) {
-            return enlightenedData.addGroupMethods(this.slice(0).sort(func));
+            return supergroup.addListMethods(this.slice(0).sort(func));
         }
         timelineArray.evtDurationSortFunc = function(evtName) {
             return function(a,b) {
@@ -393,7 +393,7 @@ var evtData = function() {
     };
     edata.makeTimelines = makeTimelines;
     function canLookup(o) {
-        // don't have a decent test for enlightenedData lists or values
+        // don't have a decent test for supergroup lists or values
         if (_.isFunction(o.lookup)) {
             if (o instanceof Array) return true;
             if (o.kids) return true; // can lookup on vals if they have kids
@@ -401,7 +401,7 @@ var evtData = function() {
     }
     function freezeList(list) {
         if (canLookup(list)) {
-            // have to initialize enlightenedData lookup lists before freezing
+            // have to initialize supergroup lookup lists before freezing
             list.lookup('foo'); 
         }
         _(list).each(function(d) {
