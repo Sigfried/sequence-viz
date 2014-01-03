@@ -1,5 +1,17 @@
+/**
+ * @file Defines the evtData utilities for {@link sequence-viz}
+ * @author Sigfried Gold <sigfried@sigfried.org>
+ * @license http://sigfried.mit-license.org/
+ * Don't trust this documentation yet. It's just beginning to be
+ * written.
+ */
+
 'use strict';
+if (typeof(require) !== "undefined") { // make it work in node or browsers or other contexts
+    moment = require('moment.js'); // otherwise assume it was included by html file
+}
 var evtData = function() {
+    /** @namespace evtData */
     // public
     var   entityIdProp
         , eventNameProp
@@ -68,7 +80,8 @@ var evtData = function() {
         edata.eventNames();
         rawRecsImmutable = _.chain(origDataRef)
                             //.tap(log)
-                            .map(makeEvt) // add ids to clones of data objs
+                            //.map(makeEvt) // add ids to clones of data objs
+                            .map(function(d,i) { return new Evt(d,i); })
                             //.tap(log)
                             .filter(filterFunc)
                             //.tap(log)
@@ -161,8 +174,9 @@ var evtData = function() {
     function fail(thing) {
         throw new Error(thing);
     }
-    function toDate(dateStr, lowerBound, upperBound) {
-        lowerBound = lowerBound || new Date('01/01/1900');
+    function toDate(dateStr, fmt) {
+        return moment(dateStr, fmt);
+        lowerBound = lowerBound || new Date('01/01/1600');
         upperBound = upperBound || new Date('01/01/2100');
         var dt = new Date(dateStr);
         if (!(dt > lowerBound && dt < upperBound)) {
@@ -178,10 +192,12 @@ var evtData = function() {
         return this.records[this.records.length - 1].startDate();
     }
     timeline.prototype.duration = function(unit) {
+        return moment.duration(this.endDate().moment - this.moment);
         var ms = unitMS(unit || timeUnits || 'day');
         return Math.round((this.endDate() - this.startDate()) / ms)
     }
     function makeEvt(o, i) {
+        fail('obsolete');
         var e = _.extend(new evt(), o);
         //e.eId = _.uniqueId('e');
         // need evts to get the same ID between calls
@@ -191,53 +207,70 @@ var evtData = function() {
         e._eventName = e[eventNameProp];
         return e;
     }
-    function evt() {}
-    evt.prototype.id = function() {
+    function Evt(raw, id) {
+        _.extend(this, raw);
+        this.eId = id;
+        this.moment = toDate(this[startDateProp]);
+        this._entityId = this[entityIdProp];
+        this._eventName = this[eventNameProp];
+    }
+    Evt.prototype.id = function() {
+        fail('fix ref to _startDate');
         return [this._entityId, this._eventName, this._startDate].join('/');
     }
-    evt.prototype.startDate = function() {
-        return this._startDate;
+    Evt.prototype.startDate = function() {
+        return this.moment;
+        //return this._startDate;
     }
-    evt.prototype.eventName = function() {
+    Evt.prototype.eventName = function() {
         return this._eventName;
     }
-    evt.prototype.entityId = function() {
+    Evt.prototype.entityId = function() {
         return this._entityId;
     }
-    evt.prototype.next = function() {
+    Evt.prototype.next = function() {
         return this.timeline().records[this.evtIdx() + 1];
     }
-    evt.prototype.prev = function() {
+    Evt.prototype.prev = function() {
         return this.timeline().records[this.evtIdx() - 1];
     }
-    evt.prototype.toNext = function(unit) {
+    Evt.prototype.hasNext = function() {
+        return !! this.next();
+    };
+    Evt.prototype.hasPrev = function() {
+        return !! this.prev();
+    };
+    Evt.prototype.toNext = function(ifNoNext) {
+        return this.hasNext() ? this.timeTo(this.next()) : ifNoNext;
         var ms = unitMS(unit || timeUnits || 'day');
         if (this.next()) {
             return this.timeTo(this.next(), ms);
         }
     };
-    evt.prototype.fromPrev = function(unit) {
+    Evt.prototype.fromPrev = function(ifNoPrev) {
+        return this.hasPrev() ? this.prev().timeTo(this) : ifNoPrev;
         var ms = unitMS(unit || timeUnits || 'day');
         if (this.prev()) {
             return this.prev().timeTo(this, ms);
         }
         return 0;
     };
-    evt.prototype.startIdx = function(unit) {
+    Evt.prototype.startIdx = function(unit) {
         var ms = unitMS(unit || timeUnits || 'day');
         return Math.round((this.startDate() - this.timeline().startDate()) / ms);
     };
-    evt.prototype.timeTo = function(otherEvt, unit) {
+    Evt.prototype.timeTo = function(otherEvt, unit) {
+        return moment.duration(otherEvt.moment - this.moment);
         var ms = unitMS(unit || timeUnits || 'day');
         if (!otherEvt) return 0;
         return otherEvt.startIdx(ms) - this.startIdx(ms);
     };
-    evt.prototype.timeline = function (_) {
+    Evt.prototype.timeline = function (_) {
         if (!arguments.length) return this._timeline;
         this._timeline = _;
         return this;
     };
-    evt.prototype.evtIdx = function (_) {
+    Evt.prototype.evtIdx = function (_) {
         if (!arguments.length) return this._evtIdx;
         this._evtIdx = _;
         return this;
@@ -245,19 +278,12 @@ var evtData = function() {
     var makeTimelines = function(data) {
         var rawRecs = _.chain(data)
                             //.tap(log)
-                            .map(makeEvt) // add ids to clones of data objs
+                            //.map(makeEvt) // add ids to clones of data objs
+                            .map(function(d,i) { return new Evt(d,i); })
                             //.tap(log)
                             .filter(filterFunc)
                             //.tap(log)
                             .value();
-        /*
-        //if (!crossEntityTimeUnits) {
-        var ms = milisecondRange(rawRecs);
-        crossEntityTimeUnits = unitsToScale(ms)
-        crossEntityTimeFormat = timeFormat(crossEntityTimeUnits);
-        crossEntityDuration = ms / unitMS(crossEntityTimeUnits);
-        //}
-        */
         var idFunc = function(d) { return d.entityId() };
         var timelineArray = _.supergroup(rawRecs, idFunc);
         _(timelineArray).each(function (tl, i) {
@@ -303,17 +329,6 @@ var evtData = function() {
             //tl.firstEvt = tl.records[0][eventNameProp];
             */
         });
-        /*
-        if (!intraEntityTimeUnits) {
-            var maxMS = d3.max(_.chain(timelineArray).pluck('records')
-                .map(function(recs) { 
-                    return _(recs).last().startDate() -
-                           _(recs).first().startDate()
-                }).value())
-            this.intraEntityTimeUnits(unitsToScale(maxMS))
-            //intraEntityTimeFormat = timeFormat(intraEntityTimeUnits);
-        }
-        */
         timelineArray.sort = function(func) {
             return supergroup.addListMethods(this.slice(0).sort(func));
         }
@@ -464,5 +479,6 @@ var evtData = function() {
     edata.unitsToScale = unitsToScale;
     edata.unitMS = unitMS;
     edata.timeFormat = timeFormat;
+    edata.Evt = Evt;
     return edata;
 }

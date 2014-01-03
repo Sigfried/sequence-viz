@@ -33,6 +33,7 @@
     "underscore": "1.4.4",
     "underscore-unchained": "0.1.1",
     "supergroup": "0.0.1",
-    "jquery": "1.9.1"
+    "jquery": "1.9.1",
+    "momentjs": "~2.5.0"
   }
 }
