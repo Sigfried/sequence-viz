@@ -6,15 +6,17 @@ var lifeflowData = function () {
         eventNodeWidth = 0,
         endNodeWidth = 0,
         rectWidth = function(recs) {
-            return d3.mean(recs.map(function(d) { 
-                return d.timeTo(nextFunc(d))
-            }));
+            if (! (recs && recs.length)) return 0;
+            var durations = recs
+                .filter(function(d) { return d.hasNext() })
+                .map(function(d) { return d.timeTo(nextFunc(d)) });
+            return durations.length ? durations.mean().valueOf() : 0;
         },
         nextFunc = function(d) { return d.next() }
             ;
     var makeNodes = function(startRecs, UNUSED, backwards, maxDepth) {
         var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
-        function preGroupRecsHook(records) { // group next records, not the ones we start with
+        function preListRecsHook(records) { // group next records, not the ones we start with
             return _.chain(records)
                             //.tap(function(d) { console.log(d) })
                             .filter(nextFunc)
@@ -25,15 +27,15 @@ var lifeflowData = function () {
             if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
                 return;
             if (!notRoot) {
-                list = enlightenedData.group(startRecs, eventNameProp);
+                list = _.supergroup(startRecs, eventNameProp);
                 list.sort(function(a,b) {
                             return b.records.length - a.records.length
                         })
             }
             _.each(list, function(d) { 
                 //d.depth = d.parent ? d.parent.depth + 1 : 0;
-                d.extendGroupBy(eventNameProp, {
-                    preGroupRecsHook:preGroupRecsHook,
+                d.addLevel(eventNameProp, {
+                    preListRecsHook:preListRecsHook,
                     childProp:'children'})
                 addChildren(d.children, true);
                 d.children.sort(function(a,b) {
@@ -43,7 +45,7 @@ var lifeflowData = function () {
             return list;
         }
         var lfnodes = addChildren(startRecs);
-        var fakeRoot = enlightenedData.addGroupMethods([]).asRootVal();
+        var fakeRoot = supergroup.addListMethods([]).asRootVal();
         fakeRoot.children = lfnodes;
         //lfnodes = position({children:lfnodes,records:[]}).children;
         lfnodes = position(fakeRoot).children;
@@ -63,6 +65,7 @@ var lifeflowData = function () {
             }
             lfnode.y += (yOffset || 0);
             lfnode.dx = rectWidth(lfnode.records);
+            
             //lfnode.x += lfnode.dx;
             lfnode.dy = lfnode.records.length;
             if (children && (n = children.length)) {
@@ -75,9 +78,9 @@ var lifeflowData = function () {
             lfnode.backwards = !!backwards;
             return lfnode;
         }
-        var nodes = enlightenedData.group(startRecs, eventNameProp, {
-                        preGroupRecsHook: preGroupRecsHook,
-                        postGroupGroupsHook: postGroupGroupsHook,
+        var nodes = _.supergroup(startRecs, eventNameProp, {
+                        preListRecsHook: preListRecsHook,
+                        postGroupListHook: postGroupListHook,
                         dimName: groupKeyName,
                         //postGroupValHook: postGroupValHook,
                         recurse: childrenFunc,
