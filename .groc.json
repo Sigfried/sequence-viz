@@ -1,0 +1,5 @@
+{
+  "glob": ["*.js", "test/*.js"],
+  "github": false,
+  "out": "doc"
+}
