@@ -1,9 +1,7 @@
 /**
- * @file Defines the evtData utilities for {@link sequence-viz}
- * @author Sigfried Gold <sigfried@sigfried.org>
- * @license http://sigfried.mit-license.org/
- * Don't trust this documentation yet. It's just beginning to be
- * written.
+ * ## evtData
+ * ###Sigfried Gold <sigfried@sigfried.org>
+ * [MIT license](http://sigfried.mit-license.org/)
  */
 
 'use strict';
@@ -16,197 +14,81 @@ var evtData = function() {
     var   entityIdProp
         , eventNameProp
         , startDateProp
-        , oneDay = 1000 * 60 * 60 * 24
-        , timeUnitMS
-        , timeUnits
+        , timeUnit = 'ms'
         , eventOrder
-        , hiddenEvents = []
-        //, timelineArray
-        , eventNameArray
-        , origDataRef
-        , rawRecsImmutable
-        , filterFunc = function() { return true }
+        , filterFunc = function() { return true } // not used
         ;
     // private
     /*
-    rawRecs:        array of raw event objects, each expected to have an
+    origData:       array of raw event objects, each expected to have an
                     entityId, and eventName, and a start date string
 
-    timelineArray:  rawRecs grouped by entityId. each entity has a records 
+    timelineArray:  origData grouped by entityId. each entity has a records 
                     array pointing to its raw event records and each of
                     those should have a pointer back to the timeline and
                     should be sorted in time order and should have
                     nextEvt/prevEvt pointers as appropriate
 
-    eventNameArray: rawRecs grouped by eventName 
-
-    OBSOLETE nodeArray:      timelines turned into a flattened tree using the 
-                    lifeflow layout I added to D3 based on the hierarchy
-                    layout. lots of ways to make these depending on where
-                    you want the root to be and whether you're building the
-                    hierarchy forwards in time or back
     */
-
-        /*
-    function curry3(fun) {
-        return function(last) {
-            return function(middle) {
-                return function(first) {
-                    return fun(first, middle, last);
-                };
-            };
-        };
-    }
-    function addCalcField(o, fun, fieldName) { 
-        // clones o and adds new field with value resulting from calling
-        // fun on the clone
-            var c = _.clone(o);
-            c[fieldName] = fun(c);
-            return c;
-    }
-    function idGen(pref) { // generator for unique ids
-        return function() {
-            return _.uniqueId(pref) 
-        }
-    }
-    // addEid returns a function that takes an object, clones it,
-    //  and adds eId field containing a unique id starting with 'e'
-    var addEid = curry3(addCalcField)('eId')(idGen('e'))
-    var addStartDate = curry3(addCalcField)('_startDate')(function(rawRec) {
-        return toDate(rawRec[startDateProp]); });
-    */
-    function edata(data) {
-        origDataRef = data;
-        edata.eventNames();
-        rawRecsImmutable = _.chain(origDataRef)
-                            //.tap(log)
-                            //.map(makeEvt) // add ids to clones of data objs
-                            .map(function(d,i) { return new Evt(d,i); })
-                            //.tap(log)
-                            .filter(filterFunc)
-                            //.tap(log)
-                            .tap(makeTimelines)
-                            .value();
-        freezeList(rawRecsImmutable);
-        return edata;
+    function edata() {
     };
-    edata.newFilter = function(fun) {
-        var newEdata = evtData()
-                    .entityIdProp(entityIdProp)
-                    .eventNameProp(eventNameProp)
-                    .startDateProp(startDateProp)
-                    .filterFunc(fun)
-                    (origDataRef)
-        return newEdata;
-    };
-    edata.subSelection = function(records) {
-        var selected = [];
-        selected.length = origDataRef.length;
-        _(records).each(function(d) {
-            selected[d.eId] = true;
-        });
-        return edata.newFilter(function(rec) {
-            return selected[rec.eId];
-        });
-    };
-    function log(o) { console.log(o) };
-    /*
-    function eventName() {}
-    eventName.prototype.toggleReturnNew = function() {
-        var evtList = eventNameArray.rawValues();
-        var disabled = _.chain(eventNameArray)
-                            .filter(function(e) { return e.disabled; })
-                            .invoke('toString')
-                            .value();
-        if (this.disabled) {
-            disabled = _(disabled).without(this.valueOf());
-        } else {
-            disabled.push(this.valueOf());
-        }
-        var evtFilter;
-        if (disabled.length > evtList.length / 2) {
-            evtFilter = function(rec) {
-                return evtList.indexOf(rec[eventNameProp]) !== -1;
-            };
-        } else {
-            evtFilter = function(rec) {
-                return disabled.indexOf(rec[eventNameProp]) === -1;
-            };
-        }
-        return edata.newFilter(evtFilter).setEventNames(evtList, disabled)
-    };
-    */
-    /*
-    function evtIsActive(evt) {
-        return !eventNameArray.lookup(evt[eventNameProp]).disabled;
-    }
-    */
-    edata.setEventNames = function(nameList, disabledList) {
-        eventNameArray = _.supergroup(
-            _(nameList).map(function(d) {return {name:d}}),'name');
-        if (disabledList) {
-            _(disabledList).each(function(d) {
-                var name = eventNameArray.lookup(d);
-                if (name) {
-                    name.disabled = true;
-                } else {
-                    fail("can't find " + d + " in " + nameList.join(','))
-                }
-            });
-        }
-        _(eventNameArray).each(function(d) {
-            _.extend(d, eventName.prototype);
-        });
-        freezeList(eventNameArray);
-        return edata;
-    }
-    edata.eventNames = function() {
-        if (eventNameArray) {
-            return eventNameArray;
-        }
-        eventNameArray = _.supergroup(origDataRef, eventNameProp);
-        _(eventNameArray).each(function(d) {
-            _.extend(d, eventName.prototype);
-        });
-        freezeList(eventNameArray);
-        return eventNameArray;
-    }
-    function fail(thing) {
-        throw new Error(thing);
-    }
-    function toDate(dateStr, fmt) {
+    function toDate(dateStr, fmt) { // storing dates as moment.js objects, at least for now
         return moment(dateStr, fmt);
-        lowerBound = lowerBound || new Date('01/01/1600');
-        upperBound = upperBound || new Date('01/01/2100');
-        var dt = new Date(dateStr);
-        if (!(dt > lowerBound && dt < upperBound)) {
-            fail("invalid date string: " + dateStr);
+    }
+    function sortEvts(list) {
+        return list.sort(function (a, b) {
+            var cmp = a.startDate() - b.startDate();
+            if (cmp === 0) {
+                if (eventOrder) {
+                    cmp = eventOrder.indexOf(a.eventName())
+                        - eventOrder.indexOf(b.eventName())
+                }
+            }
+            return cmp;
+        })
+    }
+    function Timeline(tl) {
+    }
+    function makeTimeline(supergroupVal) {
+        var timeline = _.extend(supergroupVal, new Timeline());
+        sortEvts(timeline.records);
+        timeline._evtLookup = {};
+        _.each(timeline.records, function (evt, i) {
+            evt.timeline(timeline); // give each evt a ref to the timeline it's in
+            evt.evtIdx(i);    // tell each evt what position it has in the timeline
+            if (!_(timeline._evtLookup).has(evt.eventName())) {
+                timeline._evtLookup[evt.eventName()] = [i];
+            } else {
+                timeline._evtLookup[evt.eventName()].push(i);
+            }
+        })
+        return timeline;
+    }
+    Timeline.prototype.evtLookup = function(evtName, which) { // not being called at all right now?
+        console.log('FIX DUP PROBLEM!!!');  // just fixed, but not tested yet
+        if (_(this._evtLookup).has(evtName)) {
+            if (typeof(which) === "undefined") {
+                return this.records[this._evtLookup[which]]; // return evt at idx 0
+            }
+            if (!isNaN(which)) {
+                return this.records[this._evtLookup[which]]; // return evt at idx which
+            }
+            if (which === "all") {
+                return this.records[this._evtLookup[evtName]]; // return array
+            } 
+            fail("you didn't say which and there's more than one");
         }
-        return dt;
-    }
-    function timeline() {}
-    timeline.prototype.startDate = function() {
+        // if evtName isn't in the timeline at all, return undefined
+    };
+    Timeline.prototype.startDate = function() {
         return this.records[0].startDate();
-    }
-    timeline.prototype.endDate = function() {
+    };
+    Timeline.prototype.endDate = function() {
         return this.records[this.records.length - 1].startDate();
-    }
-    timeline.prototype.duration = function(unit) {
+    };
+    Timeline.prototype.duration = function(unit) {
         return moment.duration(this.endDate().moment - this.moment);
-        var ms = unitMS(unit || timeUnits || 'day');
-        return Math.round((this.endDate() - this.startDate()) / ms)
-    }
-    function makeEvt(o, i) {
-        fail('obsolete');
-        var e = _.extend(new evt(), o);
-        //e.eId = _.uniqueId('e');
-        // need evts to get the same ID between calls
-        e.eId = i;
-        e._startDate = toDate(e[startDateProp]);
-        e._entityId = e[entityIdProp];
-        e._eventName = e[eventNameProp];
-        return e;
-    }
+    };
     function Evt(raw, id) {
         _.extend(this, raw);
         this.eId = id;
@@ -218,6 +100,7 @@ var evtData = function() {
         fail('fix ref to _startDate');
         return [this._entityId, this._eventName, this._startDate].join('/');
     }
+    Evt.prototype.dt = 
     Evt.prototype.startDate = function() {
         return this.moment;
         //return this._startDate;
@@ -240,30 +123,19 @@ var evtData = function() {
     Evt.prototype.hasPrev = function() {
         return !! this.prev();
     };
-    Evt.prototype.toNext = function(ifNoNext) {
-        return this.hasNext() ? this.timeTo(this.next()) : ifNoNext;
-        var ms = unitMS(unit || timeUnits || 'day');
-        if (this.next()) {
-            return this.timeTo(this.next(), ms);
-        }
+    Evt.prototype.toNext = function(ifNoNext, unit) {
+        return this.hasNext() ? this.timeTo(this.next(), unit) : ifNoNext;
     };
-    Evt.prototype.fromPrev = function(ifNoPrev) {
-        return this.hasPrev() ? this.prev().timeTo(this) : ifNoPrev;
-        var ms = unitMS(unit || timeUnits || 'day');
-        if (this.prev()) {
-            return this.prev().timeTo(this, ms);
-        }
-        return 0;
+    Evt.prototype.fromPrev = function(ifNoPrev, unit) {
+        return this.hasPrev() ? this.prev().timeTo(this, unit) : ifNoPrev;
     };
     Evt.prototype.startIdx = function(unit) {
-        var ms = unitMS(unit || timeUnits || 'day');
-        return Math.round((this.startDate() - this.timeline().startDate()) / ms);
+        var dur = moment.duration(this.startDate() - 
+                this.timeline().startDate());
+        return dur.as(unit || timeUnit);
     };
     Evt.prototype.timeTo = function(otherEvt, unit) {
-        return moment.duration(otherEvt.moment - this.moment);
-        var ms = unitMS(unit || timeUnits || 'day');
-        if (!otherEvt) return 0;
-        return otherEvt.startIdx(ms) - this.startIdx(ms);
+        return moment.duration(otherEvt.dt() - this.dt()).as(unit || timeUnit);
     };
     Evt.prototype.timeline = function (_) {
         if (!arguments.length) return this._timeline;
@@ -275,95 +147,54 @@ var evtData = function() {
         this._evtIdx = _;
         return this;
     };
-    var makeTimelines = function(data) {
-        var rawRecs = _.chain(data)
-                            //.tap(log)
-                            //.map(makeEvt) // add ids to clones of data objs
-                            .map(function(d,i) { return new Evt(d,i); })
-                            //.tap(log)
-                            .filter(filterFunc)
-                            //.tap(log)
-                            .value();
-        var idFunc = function(d) { return d.entityId() };
-        var timelineArray = _.supergroup(rawRecs, idFunc);
-        _(timelineArray).each(function (tl, i) {
-            _.extend(tl, timeline.prototype);
-            //var addTimelineToRec = curry3(addCalcField)('timeline')(function(){return tl});
-            // too hard to maintain immutability through all this
-            tl.records.sort(function (a, b) {
-                var cmp = a.startDate() - b.startDate();
-                if (cmp === 0) {
-                    if (eventOrder) {
-                        cmp = eventOrder.indexOf(a.eventName())
-                            - eventOrder.indexOf(b.eventName())
-                    }
-                }
-                return cmp;
-            })
-            _.each(tl.records, function (r, i) {
-                r.timeline(tl);
-                r.evtIdx(i);
-            })
-            tl._evtLookup = {};
-            tl.evtLookup = function(evtName) {
-                //fail('need to fix for dup evts');
-                console.log('FIX DUP PROBLEM!!!')
-                if (_(this._evtLookup).has(evtName)) {
-                    return this.records[this._evtLookup[evtName]];
-                }
-            }
-            _.each(tl.records, function (r, i) {
-                if (!_(tl._evtLookup).has(r.eventName())) {
-                    tl._evtLookup[r.eventName()] = i;
-                }
-            });
-            /*
-            tl.startDate() = tl.records[0].startDate();
-            tl.endDate = tl.records[tl.records.length - 1].endDate;
-            tl.days = tl.records[tl.records.length - 1].dayIdx + 1; // days for last rec is always 1
-            tl.activeRecords = function() {
-                return _(this.records).filter(function(rec) {
-                    return !eventNameArray.lookup(rec[eventNameProp]).disabled;
-                });
-            }
-            //tl.firstEvt = tl.records[0][eventNameProp];
-            */
-        });
-        timelineArray.sort = function(func) {
-            return supergroup.addListMethods(this.slice(0).sort(func));
-        }
-        timelineArray.evtDurationSortFunc = function(evtName) {
-            return function(a,b) {
-                var arec = a.evtLookup(evtName);
-                var brec = b.evtLookup(evtName);
-                if (!arec && !brec) return 0;
-                if (!arec) return 1;
-                if (!brec) return -1;
-                var A = arec.toNext();
-                var B = brec.toNext();
-                A = isNaN(A) ? -Infinity : A;
-                B = isNaN(B) ? -Infinity : B;
-                return B - A;
-                if (B < A) return -1; // descending order
-                if (A < B) return 1;
-                if (A === B) return 0;
-                fail("what did I forget?")
-            }
-        }
-        timelineArray.sortByEvtDuration = function(evtName) {
-            return this.sort(this.evtDurationSortFunc(evtName));
-        };
-        timelineArray.data = function() {
-            return rawRecs;
-        }
-        freezeList(rawRecs);
-        freezeList(timelineArray);
-        return timelineArray;
+    function Timelines() {
     }
-    edata.timelines = function(data) {
-        var clone = unfreezeList(data);
-        return freezeList(makeTimelines(clone));
+    Timelines.prototype.maxDuration = function () {
+        return _.max(this.map(function(d) {
+                    return moment.duration(
+                        d.records.last().moment - 
+                        d.records.first().moment);
+                }));
+    }
+    Timelines.prototype.data = function () {
+        return this._evtData;
     };
+    Timelines.prototype.sort = function (func) {
+        fail('is this called?'); // not from lifeflow...will test when i get to it
+        return supergroup.addListMethods(this.slice(0).sort(func));
+    };
+    Timelines.prototype.evtDurationSortFunc = function (func) {
+        return function(a,b) {
+            var arec = a.evtLookup(evtName);
+            var brec = b.evtLookup(evtName);
+            if (!arec && !brec) return 0;
+            if (!arec) return 1;
+            if (!brec) return -1;
+            var A = arec.toNext();
+            var B = brec.toNext();
+            A = isNaN(A) ? -Infinity : A;
+            B = isNaN(B) ? -Infinity : B;
+            return B - A;
+            if (B < A) return -1; // descending order
+            if (A < B) return 1;
+            if (A === B) return 0;
+            fail("what did I forget?")
+        }
+    };
+    Timelines.prototype.evtDurationSortFunc = function (evtName) {
+        return this.sort(this.evtDurationSortFunc(evtName));
+    };
+    var makeTimelines = function(data) { // have some old code using this
+        var evts = _(data).map(function(d,i) { return new Evt(d,i); });
+        var timelines = _.supergroup(evts, entityIdProp);
+        timelines = timelines
+            .map(function(d,i) { 
+                return makeTimeline(d);
+            });
+        timelines._evtData = evts;
+        _.extend(timelines, new Timelines);
+        return timelines;
+    }
     edata.entityIdProp = function (_) {
         if (!arguments.length) return entityIdProp;
         entityIdProp = _;
@@ -379,106 +210,53 @@ var evtData = function() {
         startDateProp = _;
         return edata;
     };
-    edata.timeUnits = function (_) {
-        if (!arguments.length) return timeUnits;
-        timeUnits = _;
+    edata.timeUnit = function (_) {
+        if (!arguments.length) return timeUnit;
+        timeUnit = _;
         return edata;
     };
-    edata.timeUnitMS = function (_) {
-        if (!arguments.length) return timeUnitMS;
-        timeUnitMS = _;
-        return edata;
-    };
-    edata.intraEntityTimeUnits = function (_) {
-        if (!arguments.length) return intraEntityTimeUnits;
-        intraEntityTimeUnits = _;
-        intraEntityTimeFormat = timeFormat(intraEntityTimeUnits);
+    edata.eventOrder = function (_) {
+        if (!arguments.length) return eventOrder;
+        eventOrder = _;
         return edata;
     };
     edata.filterFunc = function (_) {
+        fail("not being used anymore, but keeping just in case");
         if (!arguments.length) return filterFunc;
         filterFunc = _;
         return edata;
     };
-    edata.origDataRef = function () {
-        return origDataRef;
-    };
-    edata.data = function () {
-        return rawRecsImmutable;
-    };
-    edata.makeTimelines = makeTimelines;
-    function canLookup(o) {
-        // don't have a decent test for supergroup lists or values
-        if (_.isFunction(o.lookup)) {
-            if (o instanceof Array) return true;
-            if (o.kids) return true; // can lookup on vals if they have kids
+    function log(o) { console.log(o) };
+    function fail(thing) {
+        throw new Error(thing);
+    }
+    moment.lang('relTime', {
+        relativeTime : {
+            future: "%s",
+            past:   "%s",
+            s:  "second",
+            m:  "second",
+            mm: "minute",
+            h:  "minute",
+            hh: "hour",
+            d:  "hour",
+            dd: "day",
+            M:  "day",
+            MM: "month",
+            y:  "month",
+            yy: "year"
         }
-    }
-    function freezeList(list) {
-        if (canLookup(list)) {
-            // have to initialize supergroup lookup lists before freezing
-            list.lookup('foo'); 
-        }
-        _(list).each(function(d) {
-            if (canLookup(d)) {
-                d.lookup('foo'); 
-            }
-            Object.freeze(d);
-        });
-        Object.freeze(list);
-        return list;
+    });
+    moment.lang('en');
+    edata.durationUnits = function(dur) {
+        var lang = moment.lang();
+        moment.lang('relTime');
+        var unit = moment.duration(dur).humanize();
+        moment.lang(lang);
+        return unit;
     };
-    function unfreezeList(list) {
-        return _(list).map(_.clone);
-    }
-    // @param {evt[]} recs
-    // @return {Number} miliseconds from earliest to latest
-    function milisecondRange(recs) {
-        var range = d3.extent(_(recs).invoke('startDate'))
-        return range[1] - range[0];
-    }
-    // @param {number} miliseconds
-    // @return {String} time unit
-    function unitsToScale(miliseconds) {
-        if (isNaN(miliseconds) || miliseconds < 1) fail('bad range number');
-        else if (miliseconds >= 1000*60*60*24*365.25) return 'years';
-        else if (miliseconds >= 1000*60*60*24*365.25/12) return 'months';
-        else if (miliseconds >= 1000*60*60*24*7) return 'weeks';
-        else if (miliseconds >= 1000*60*60*24) return 'days';
-        else if (miliseconds >= 1000*60*60) return 'hours';
-        else if (miliseconds >= 1000*60) return 'minutes';
-        else if (miliseconds >= 1000) return 'seconds';
-        return 'miliseconds';
-    }
-    // @param {String} time unit
-    // @return {Number} of miliseconds in that unit
-    function unitMS(unit) {
-        if      (unit === 'years') return 1000*60*60*24*365.25;
-        else if (unit === 'months') return 1000*60*60*24*365.25/12;
-        else if (unit === 'weeks') return 1000*60*60*24*7;
-        else if (unit === 'days') return 1000*60*60*24;
-        else if (unit === 'hours') return 1000*60*60;
-        else if (unit === 'minutes') return 1000*60;
-        else if (unit === 'seconds') return 1000;
-        else if (unit === 'miliseconds') return 1;
-        fail('bad unit name')
-    }
-    // @param {String} unit
-    // @return {Function} appropriate d3.time.format
-    function timeFormat(unit) {
-        if      (unit === 'years') return d3.time.format('%Y');
-        else if (unit === 'months') return d3.time.format('%b %Y');
-        else if (unit === 'weeks') return d3.time.format('%b %Y %d');
-        else if (unit === 'days') return d3.time.format('%Y-%m-%d');
-        else if (unit === 'hours') return d3.time.format('%Y-%m-%d %H:%M');
-        else if (unit === 'minutes') return d3.time.format('%Y-%m-%d %H:%M');
-        else if (unit === 'seconds') return d3.time.format('%Y-%m-%d %H:%M:%s');
-        else if (unit === 'miliseconds') return d3.time.format('%Y-%m-%d %H:%M:%L');
-    }
-    edata.milisecondRange = milisecondRange;
-    edata.unitsToScale = unitsToScale;
-    edata.unitMS = unitMS;
-    edata.timeFormat = timeFormat;
     edata.Evt = Evt;
+    edata.Timeline = Timeline;
+    edata.makeTimelines = makeTimelines;
     return edata;
 }

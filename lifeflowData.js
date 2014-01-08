@@ -9,12 +9,15 @@ var lifeflowData = function () {
             if (! (recs && recs.length)) return 0;
             var durations = recs
                 .filter(function(d) { return d.hasNext() })
-                .map(function(d) { return d.timeTo(nextFunc(d)) });
+                .map(function(d) { 
+                    var next = nextFunc(d);
+                    return next ? d.timeTo(next) : 0;
+                });
             return durations.length ? durations.mean().valueOf() : 0;
         },
         nextFunc = function(d) { return d.next() }
             ;
-    var makeNodes = function(startRecs, UNUSED, backwards, maxDepth) {
+    var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {
         var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
         function preListRecsHook(records) { // group next records, not the ones we start with
             return _.chain(records)
@@ -49,8 +52,11 @@ var lifeflowData = function () {
         fakeRoot.children = lfnodes;
         //lfnodes = position({children:lfnodes,records:[]}).children;
         lfnodes = position(fakeRoot).children;
-        return lfnodes.flattenTree();
 
+        if (noflatten === "noflatten")
+            return lfnodes;
+
+        return lfnodes.flattenTree();
 
         function position(lfnode, yOffset) {
             var children = lfnode.children;
@@ -78,16 +84,6 @@ var lifeflowData = function () {
             lfnode.backwards = !!backwards;
             return lfnode;
         }
-        var nodes = _.supergroup(startRecs, eventNameProp, {
-                        preListRecsHook: preListRecsHook,
-                        postGroupListHook: postGroupListHook,
-                        dimName: groupKeyName,
-                        //postGroupValHook: postGroupValHook,
-                        recurse: childrenFunc,
-                        childProp: 'children'
-                    });
-        nodes = position({children:nodes,records:[]}).children;
-        return nodes.flattenTree();
     }
     //============================================================
     // Expose Public Variables

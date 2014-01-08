@@ -1,6 +1,13 @@
 'use strict()';
 
 /* global: describe */
+describe('load hurData', function() {
+    it('should have loaded some data', function() {
+        expect(hurData).toBeDefined();
+        expect(hurData.length).toEqual(2497);
+    });
+});
+/*
 describe('_.supergroup', function() {
     var self = this;
 
@@ -34,6 +41,7 @@ describe('_.supergroup', function() {
         expect(self.lifeflowNodes).toBeDefined();
         expect(self.lifeflowNodes.length).toEqual(647);
     });
+});
 
 /*  couldn't get this to work, 404 error from karma web server
     describe("Asynchronous specs", function() {
@@ -128,4 +136,4 @@ describe('_.supergroup', function() {
         });
     });
     */
-});
+//});

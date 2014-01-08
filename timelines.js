@@ -466,11 +466,6 @@ var timelineChart = function () {
                     return !eventNames.lookup(d[eventNameProp]).disabled;
                 });
                 timelineData = edata.makeTimelines(recs);
-                /*
-                edata = e.toggleReturnNew();
-                setEventNames();
-                timelineData = edata.timelines(true);
-                */
             });
             return;
             rects
