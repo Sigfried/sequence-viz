@@ -14,7 +14,7 @@ var evtData = function() {
     var   entityIdProp
         , eventNameProp
         , startDateProp
-        , timeUnit = 'ms'
+        , unitSettings = {unit: 'ms'}
         , eventOrder
         , filterFunc = function() { return true } // not used
         ;
@@ -47,8 +47,65 @@ var evtData = function() {
             return cmp;
         })
     }
-    function Timeline(tl) {
+    function Evt(raw, id) {
+        _.extend(this, raw);
+        this.eId = id;
+        this._moment = toDate(this[startDateProp]);
+        this._entityId = this[entityIdProp];
+        this._eventName = this[eventNameProp];
     }
+    Evt.prototype.id = function() {
+        fail('fix ref to _startDate');
+        return [this._entityId, this._eventName, this._startDate].join('/');
+    }
+    Evt.prototype.dt = 
+    Evt.prototype.startDate = function() {
+        return this._moment;
+        //return this._startDate;
+    }
+    Evt.prototype.eventName = function() {
+        return this._eventName;
+    }
+    Evt.prototype.entityId = function() {
+        return this._entityId;
+    }
+    Evt.prototype.next = function() {
+        return this.timeline().records[this.evtIdx() + 1];
+    }
+    Evt.prototype.prev = function() {
+        return this.timeline().records[this.evtIdx() - 1];
+    }
+    Evt.prototype.hasNext = function() {
+        return !! this.next();
+    };
+    Evt.prototype.hasPrev = function() {
+        return !! this.prev();
+    };
+    Evt.prototype.toNext = function(ifNoNext, unit) {
+        return this.hasNext() ? this.timeTo(this.next(), unit) : ifNoNext;
+    };
+    Evt.prototype.fromPrev = function(ifNoPrev, unit) {
+        return this.hasPrev() ? this.prev().timeTo(this, unit) : ifNoPrev;
+    };
+    Evt.prototype.startIdx = function(unit) {
+        var dur = duration(this.startDate() - 
+                this.timeline().startDate());
+        return dur.report(unit);
+    };
+    Evt.prototype.timeTo = function(otherEvt, unit) {
+        return duration(otherEvt.dt() - this.dt()).report(unit);
+    };
+    Evt.prototype.timeline = function (_) {
+        if (!arguments.length) return this._timeline;
+        this._timeline = _;
+        return this;
+    };
+    Evt.prototype.evtIdx = function (_) {
+        if (!arguments.length) return this._evtIdx;
+        this._evtIdx = _;
+        return this;
+    };
+    function Timeline(tl) { }
     function makeTimeline(supergroupVal) {
         var timeline = _.extend(supergroupVal, new Timeline());
         sortEvts(timeline.records);
@@ -87,75 +144,109 @@ var evtData = function() {
         return this.records[this.records.length - 1].startDate();
     };
     Timeline.prototype.duration = function(unit) {
-        return moment.duration(this.endDate().moment - this.moment);
+        return duration(this.endDate() - this.startDate());
     };
-    function Evt(raw, id) {
-        _.extend(this, raw);
-        this.eId = id;
-        this.moment = toDate(this[startDateProp]);
-        this._entityId = this[entityIdProp];
-        this._eventName = this[eventNameProp];
-    }
-    Evt.prototype.id = function() {
-        fail('fix ref to _startDate');
-        return [this._entityId, this._eventName, this._startDate].join('/');
-    }
-    Evt.prototype.dt = 
-    Evt.prototype.startDate = function() {
-        return this.moment;
-        //return this._startDate;
-    }
-    Evt.prototype.eventName = function() {
-        return this._eventName;
-    }
-    Evt.prototype.entityId = function() {
-        return this._entityId;
-    }
-    Evt.prototype.next = function() {
-        return this.timeline().records[this.evtIdx() + 1];
-    }
-    Evt.prototype.prev = function() {
-        return this.timeline().records[this.evtIdx() - 1];
-    }
-    Evt.prototype.hasNext = function() {
-        return !! this.next();
-    };
-    Evt.prototype.hasPrev = function() {
-        return !! this.prev();
-    };
-    Evt.prototype.toNext = function(ifNoNext, unit) {
-        return this.hasNext() ? this.timeTo(this.next(), unit) : ifNoNext;
-    };
-    Evt.prototype.fromPrev = function(ifNoPrev, unit) {
-        return this.hasPrev() ? this.prev().timeTo(this, unit) : ifNoPrev;
-    };
-    Evt.prototype.startIdx = function(unit) {
-        var dur = moment.duration(this.startDate() - 
-                this.timeline().startDate());
-        return dur.as(unit || timeUnit);
-    };
-    Evt.prototype.timeTo = function(otherEvt, unit) {
-        return moment.duration(otherEvt.dt() - this.dt()).as(unit || timeUnit);
-    };
-    Evt.prototype.timeline = function (_) {
-        if (!arguments.length) return this._timeline;
-        this._timeline = _;
+    Timeline.prototype.timelines = function (_) {
+        if (!arguments.length) return this._timelines;
+        this._timelines = _;
         return this;
     };
-    Evt.prototype.evtIdx = function (_) {
-        if (!arguments.length) return this._evtIdx;
-        this._evtIdx = _;
+    // @method whatAmI
+    // @returns Timeline constructor
+    // since timelines are String or Number objects (to represent their entityId)
+    // and I don't have a great way to subclass native types, this is a
+    // little kind of class test
+    Timeline.prototype.whatAmI = function () {
+        return Timeline.prototype;
+    };
+
+    function Timelines() { }
+    var makeTimelines = function(data) { // have some old code using this
+        var evts = _(data).map(function(d,i) { return new Evt(d,i); });
+        var timelines = _.supergroup(evts, entityIdProp);
+        timelines = timelines
+            .map(function(d,i) { 
+                return makeTimeline(d);
+            });
+        timelines._evtData = evts;
+        _.extend(timelines, new Timelines);
+        timelines.each(function(timeline) {
+            timeline.timelines(timelines);
+        });
+        timelines._unitSettingsStack = [];
+        return timelines;
+    }
+    Timelines.prototype.maxDuration = function (unit, recalc) {
+        if (typeof this._maxDuration === "undefined" || recalc)
+            this._maxDuration = this.invoke('duration').max();
+        return this._maxDuration.report(unit);
+    }
+    Timelines.prototype.wholeSetDuration = function (unit, recalc) {
+        if (typeof this._setDuration === "undefined" || recalc)
+            this._setDuration = duration(
+                this.invoke('startDate').max() -
+                this.invoke('endDate').min());
+        return this._setDuration.report(unit);
+    };
+    Timelines.prototype.universeUnit = function (recalc) {
+        if (typeof this._universeUnit === "undefined" || recalc)
+            this._universeUnit = edata.durationUnits(
+                    this.wholeSetDuration(recalc));
+        return this._universeUnit;
+    };
+    Timelines.prototype.timelineUnit = function (recalc) {
+        if (typeof this._timelineUnit === "undefined" || recalc)
+            this._timelineUnit = edata.durationUnits(
+                    this.maxDuration(recalc));
+        return this._timelineUnit;
+    };
+    Evt.prototype.unit = function(unit) {
+        return this.timeline().unit(unit);
+    };
+    Timeline.prototype.unit = function(unit) {
+        return this.timelines().unit(unit);
+    };
+    Timelines.prototype.unit = function(unit) {
+        if (unit === "universe")
+            return this.universeUnit();
+        if (unit === "timeline")
+            return this.timelineUnit();
+        if (typeof unit === "string")
+            return unit;
+        return this.unitSettings().unit;
+    };
+    Timelines.prototype.unitSettings = function (opts) {
+        if (!arguments.length) return this._unitSettings;
+        this._unitSettingsStack.push(_.clone(this._unitSettings));
+         _.extend(this._unitSettings, opts);
         return this;
     };
-    function Timelines() {
-    }
-    Timelines.prototype.maxDuration = function () {
-        return _.max(this.map(function(d) {
-                    return moment.duration(
-                        d.records.last().moment - 
-                        d.records.first().moment);
-                }));
-    }
+    Timelines.prototype.unitSettingsRestore = function () {
+        return this._unitSettingsStack.pop() || edata.unitSettings();
+    };
+    Evt.prototype.report = function(unit) {
+        return this.timeline().report(unit);
+    };
+    Timeline.prototype.report = function(unit) {
+        return this.timelines().report(unit);
+    };
+    // @method report
+    // report durations according to current settings
+    // @param {number} num the duration to express in certain units
+    // @param {string} [unit=default unitSettings.unit, ms unless specified earlier], one of: universe, timeline, year, month, day, hour, minute, second, ms
+    // @param {boolean} [justNumber] return the number as opposed to the whole moment.duration.humanize string
+    // @return {string or number}
+    Timelines.prototype.report = function(num, unit, justNumber, round) {
+        var dur = duration(num);
+        var u = this.unit(unit);
+        var res = round ? Math.round(dur.as(u)) : dur.as(u);
+        if (justNumber)
+            return res;
+        var ustr = (u === 'ms') ? 'milisecond' : u;
+        if (res !== 1)
+            ustr = ustr + 's';
+        return res + ' ' + ustr;
+    };
     Timelines.prototype.data = function () {
         return this._evtData;
     };
@@ -184,17 +275,13 @@ var evtData = function() {
     Timelines.prototype.evtDurationSortFunc = function (evtName) {
         return this.sort(this.evtDurationSortFunc(evtName));
     };
-    var makeTimelines = function(data) { // have some old code using this
-        var evts = _(data).map(function(d,i) { return new Evt(d,i); });
-        var timelines = _.supergroup(evts, entityIdProp);
-        timelines = timelines
-            .map(function(d,i) { 
-                return makeTimeline(d);
-            });
-        timelines._evtData = evts;
-        _.extend(timelines, new Timelines);
-        return timelines;
-    }
+    // @method whatAmI
+    // @returns Timelines constructor
+    // since timelines are Arrays and I don't have a great way to 
+    // subclass native types, this is a little kind of class test
+    Timelines.prototype.whatAmI = function () {
+        return Timelines.prototype;
+    };
     edata.entityIdProp = function (_) {
         if (!arguments.length) return entityIdProp;
         entityIdProp = _;
@@ -210,9 +297,9 @@ var evtData = function() {
         startDateProp = _;
         return edata;
     };
-    edata.timeUnit = function (_) {
-        if (!arguments.length) return timeUnit;
-        timeUnit = _;
+    edata.unitSettings = function (_) {
+        if (!arguments.length) return unitSettings;
+        unitSettings = _;
         return edata;
     };
     edata.eventOrder = function (_) {
@@ -229,6 +316,9 @@ var evtData = function() {
     function log(o) { console.log(o) };
     function fail(thing) {
         throw new Error(thing);
+    }
+    function duration(num) {
+        return moment.duration(num);
     }
     moment.lang('relTime', {
         relativeTime : {
@@ -251,12 +341,13 @@ var evtData = function() {
     edata.durationUnits = function(dur) {
         var lang = moment.lang();
         moment.lang('relTime');
-        var unit = moment.duration(dur).humanize();
+        var unit = duration(dur).humanize();
         moment.lang(lang);
         return unit;
     };
     edata.Evt = Evt;
     edata.Timeline = Timeline;
+    edata.Timelines = Timelines;
     edata.makeTimelines = makeTimelines;
     return edata;
 }
