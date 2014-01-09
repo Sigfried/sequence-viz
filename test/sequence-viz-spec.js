@@ -52,13 +52,31 @@ describe('lifeflow and timelines with simple data', function() {
                     (self.startRecs, 'noflatten');
             self.nodeList = self.nodeTree.flattenTree();
         });
-        it('should have 9 lifeflowNodes', function() {
-            expect(self.nodeTree.length).toEqual(2);
-            expect(self.nodeList.length).toEqual(9);
-            console.log(self.nodeTree.leafNodes().invoke('namePath'));
-            expect(self.nodeList.invoke('namePath')).toEqual(
-                ["A","A/B","A/B/B","A/C","A/C/B","B","B/A","B/A/B","B/A/B/B"]
+        describe('nodeTree', function() {
+            it('should have 2 top-level values', function() {
+                expect(self.nodeTree.rawValues()).toEqual(["A","B"]);
+            });
+        });
+        describe('nodeTree', function() {
+            it('should have 2 top-level values', function() {
+                expect(self.nodeTree.rawValues()).toEqual(["A","B"]);
+            });
+            it('should have 3 leafNodes', function() {
+                expect(self.nodeTree.leafNodes().rawValues()).toEqual(['B','B','B']);
+            });
+            it('should have these leafNode paths', function() {
+                expect(self.nodeTree.leafNodes().invoke('namePath')).toEqual(["A/B/B","A/C/B","B/A/B/B"]);
+            });
+        });
+        describe('all nodes', function() {
+            it('should have 9 values', function() {
+                expect(self.nodeList.rawValues()).toEqual(['A','B','B','C','B','B','A','B','B']);
+            });
+            it('should have these paths', function() {
+                expect(self.nodeList.invoke('namePath')).toEqual(
+                    ["A","A/B","A/B/B","A/C","A/C/B","B","B/A","B/A/B","B/A/B/B"]
                 );
+            });
         });
     });
 });
