@@ -88,12 +88,10 @@ var evtData = function() {
         return this.hasPrev() ? this.prev().timeTo(this, unit) : ifNoPrev;
     };
     Evt.prototype.startIdx = function(unit) {
-        var dur = duration(this.startDate() - 
-                this.timeline().startDate());
-        return dur.report(unit);
+        return this.timeline().firstEvt().timeTo(this, unit);
     };
     Evt.prototype.timeTo = function(otherEvt, unit) {
-        return duration(otherEvt.dt() - this.dt()).report(unit);
+        return this.dur(otherEvt.dt() - this.dt(), unit);
     };
     Evt.prototype.timeline = function (_) {
         if (!arguments.length) return this._timeline;
@@ -137,14 +135,21 @@ var evtData = function() {
         }
         // if evtName isn't in the timeline at all, return undefined
     };
+    Timeline.prototype.firstEvt = function() {
+        return this.records[0];
+    };
+    Timeline.prototype.lastEvt = function() {
+        return this.records[this.records.length - 1];
+    };
     Timeline.prototype.startDate = function() {
-        return this.records[0].startDate();
+        return this.firstEvt().dt();
     };
     Timeline.prototype.endDate = function() {
+        return this.lastEvt().dt();
         return this.records[this.records.length - 1].startDate();
     };
     Timeline.prototype.duration = function(unit) {
-        return duration(this.endDate() - this.startDate());
+        return this.firstEvt().timeTo(this.lastEvt(), unit);
     };
     Timeline.prototype.timelines = function (_) {
         if (!arguments.length) return this._timelines;
@@ -174,19 +179,24 @@ var evtData = function() {
             timeline.timelines(timelines);
         });
         timelines._unitSettingsStack = [];
+        timelines.timelineUnit(true); // make sure they get set with all timelines in place
+        timelines.universeUnit(true);
         return timelines;
     }
     Timelines.prototype.maxDuration = function (unit, recalc) {
         if (typeof this._maxDuration === "undefined" || recalc)
-            this._maxDuration = this.invoke('duration').max();
-        return this._maxDuration.report(unit);
+            // this .mox() is one of the places where
+            // underscore-unchained will bite you. moment.js doesn't
+            // like Number objects
+            this._maxDuration = this.invoke('duration', 'justNumber').max().valueOf();
+        return this.dur(this._maxDuration, unit);
     }
     Timelines.prototype.wholeSetDuration = function (unit, recalc) {
         if (typeof this._setDuration === "undefined" || recalc)
-            this._setDuration = duration(
-                this.invoke('startDate').max() -
-                this.invoke('endDate').min());
-        return this._setDuration.report(unit);
+            this._setDuration = this.dur(
+                this.invoke('startDate').max().valueOf() -
+                this.invoke('endDate').min().valueOf(), 'justNumber');
+        return this.dur(this._setDuration, unit);
     };
     Timelines.prototype.universeUnit = function (recalc) {
         if (typeof this._universeUnit === "undefined" || recalc)
@@ -215,37 +225,100 @@ var evtData = function() {
             return unit;
         return this.unitSettings().unit;
     };
+    // @method unitSettings
+    // @param {Object} [opts]
+    // @param {boolean} [opts.unit] set default units, otherwise defaults to what edata has, which defaults to ms
+    // @param {boolean} [opts.withUnit] whether to attach unit string to reported durations
+    // @param {boolean} [opts.round] whether to round reported durations
+    // if used as a getter, returns unitSettings object  
+    // if used as setter, returns 'this' (standard pattern to facilitate chaining, though it doesn't seem necessary here)  
+    // when setting, it pushes old settings on a stack so you can set things temporarily  
+    // you only have to supply the settings you want to change from the current settings  
     Timelines.prototype.unitSettings = function (opts) {
+        if (typeof this._unitSettings === "undefined")
+            this._unitSettings = _.clone(edata.unitSettings());
         if (!arguments.length) return this._unitSettings;
         this._unitSettingsStack.push(_.clone(this._unitSettings));
          _.extend(this._unitSettings, opts);
         return this;
     };
     Timelines.prototype.unitSettingsRestore = function () {
-        return this._unitSettingsStack.pop() || edata.unitSettings();
+        return this._unitSettings = 
+            this._unitSettingsStack.pop() || edata.unitSettings();
     };
-    Evt.prototype.report = function(unit) {
-        return this.timeline().report(unit);
-    };
-    Timeline.prototype.report = function(unit) {
-        return this.timelines().report(unit);
-    };
-    // @method report
+    Timelines.prototype.dur = function(num, unit) {
+        var tempSettings;
+        if (unit === 'justNumber') {
+            tempSettings = {withUnit: false};
+        } else if (_.isString(unit)) {
+            tempSettings = {unit: unit};
+        } else {
+            tempSettings = unit;
+        }
+        var result;
+        if (! _.isEmpty(unit)) {
+            this.unitSettings(tempSettings);
+            result = this.formatDur(num);
+            this.unitSettingsRestore();
+        } else {
+            result = this.formatDur(num);
+        }
+        return result;
+    }
+    // @method formatDur
     // report durations according to current settings
     // @param {number} num the duration to express in certain units
-    // @param {string} [unit=default unitSettings.unit, ms unless specified earlier], one of: universe, timeline, year, month, day, hour, minute, second, ms
-    // @param {boolean} [justNumber] return the number as opposed to the whole moment.duration.humanize string
     // @return {string or number}
-    Timelines.prototype.report = function(num, unit, justNumber, round) {
-        var dur = duration(num);
-        var u = this.unit(unit);
-        var res = round ? Math.round(dur.as(u)) : dur.as(u);
-        if (justNumber)
-            return res;
-        var ustr = (u === 'ms') ? 'milisecond' : u;
-        if (res !== 1)
-            ustr = ustr + 's';
-        return res + ' ' + ustr;
+    Timelines.prototype.formatDur = function(num) {
+        var settings = this.unitSettings();
+        var unit = this.unit(settings.unit);
+        var dur = settings.dontConvert ? 
+                    moment.duration(num, unit) :
+                    moment.duration(num);
+        var newNum = dur.as(unit);
+        var decimals = Number(settings.round) - 1;
+        if (settings.round) {
+            newNum = Math.round(newNum * Math.pow(10,decimals)) / Math.pow(10,decimals);
+        }
+        if (settings.withUnit) {
+            if (unit === 'ms')
+                unit = 'milisecond';
+            if (newNum !== 1)
+                unit = unit + 's';
+            return newNum + ' ' + unit;
+        }
+        return newNum;
+    };
+    Evt.prototype.dur = function(num, unit) {
+        return this.timeline().dur(num, unit);
+    };
+    Timeline.prototype.dur = function(num, unit) {
+        return this.timelines().dur(num, unit);
+    };
+    moment.lang('relTime', {
+        relativeTime : {
+            future: "%s",
+            past:   "%s",
+            s:  "second",
+            m:  "second",
+            mm: "minute",
+            h:  "minute",
+            hh: "hour",
+            d:  "hour",
+            dd: "day",
+            M:  "day",
+            MM: "month",
+            y:  "month",
+            yy: "year"
+        }
+    });
+    moment.lang('en');
+    edata.durationUnits = function(dur) {
+        var lang = moment.lang();
+        moment.lang('relTime');
+        var unit = moment.duration(dur).humanize();
+        moment.lang(lang);
+        return unit;
     };
     Timelines.prototype.data = function () {
         return this._evtData;
@@ -317,34 +390,6 @@ var evtData = function() {
     function fail(thing) {
         throw new Error(thing);
     }
-    function duration(num) {
-        return moment.duration(num);
-    }
-    moment.lang('relTime', {
-        relativeTime : {
-            future: "%s",
-            past:   "%s",
-            s:  "second",
-            m:  "second",
-            mm: "minute",
-            h:  "minute",
-            hh: "hour",
-            d:  "hour",
-            dd: "day",
-            M:  "day",
-            MM: "month",
-            y:  "month",
-            yy: "year"
-        }
-    });
-    moment.lang('en');
-    edata.durationUnits = function(dur) {
-        var lang = moment.lang();
-        moment.lang('relTime');
-        var unit = duration(dur).humanize();
-        moment.lang(lang);
-        return unit;
-    };
     edata.Evt = Evt;
     edata.Timeline = Timeline;
     edata.Timelines = Timelines;

@@ -1,8 +1,25 @@
 'use strict';
 var lifeflowData = function () {
+    function LifeflowNode() {};
+    LifeflowNode.prototype.x = function(unit) {
+        return timelines.dur(this._x, unit);
+    };
+    LifeflowNode.prototype.dx = function(unit) {
+        return timelines.dur(this._dx, unit);
+    };
+    LifeflowNode.prototype.xLogical = function(unit) {
+        return timelines.dur(this._xLogical, unit);
+    };
+    LifeflowNode.prototype.y = function() {
+        return this._y;
+    };
+    LifeflowNode.prototype.dy = function() {
+        return this._dy;
+    };
     var 
         eventNameProp = null,
-        alignmentLineWidth = 28,
+        timelines,  // just for date reporting context
+        alignmentLineWidth = 0,
         eventNodeWidth = 0,
         endNodeWidth = 0,
         rectWidth = function(recs) {
@@ -11,6 +28,7 @@ var lifeflowData = function () {
                 .filter(function(d) { return d.hasNext() })
                 .map(function(d) { 
                     var next = nextFunc(d);
+                    // uses miliseconds
                     return next ? d.timeTo(next) : 0;
                 });
             return durations.length ? durations.mean().valueOf() : 0;
@@ -53,32 +71,37 @@ var lifeflowData = function () {
         //lfnodes = position({children:lfnodes,records:[]}).children;
         lfnodes = position(fakeRoot).children;
 
+        var allNodes = lfnodes.flattenTree();
+        allNodes.each(function(lfnode) {
+            _.extend(lfnode, new LifeflowNode());
+        });
+
         if (noflatten === "noflatten")
             return lfnodes;
 
-        return lfnodes.flattenTree();
+        return allNodes;
 
         function position(lfnode, yOffset) {
             var children = lfnode.children;
             if (lfnode.parent) {
-                lfnode.x = lfnode.parent.x + lfnode.parent.dx 
+                lfnode._x = lfnode.parent._x + lfnode.parent._dx 
                     + eventNodeWidth;
-                //lfnode.x = lfnode.parent.x + eventNodeWidth;
-                lfnode.y = lfnode.parent.y;
+                lfnode._xLogical = lfnode.parent._xLogical + lfnode.parent._dx;
+                lfnode._y = lfnode.parent._y;
             } else {
-                lfnode.x = alignmentLineWidth * (!backwards || -1);
-                lfnode.y = 0;
+                lfnode._x = alignmentLineWidth * (!backwards || -1);
+                lfnode._xLogical = 0;
+                lfnode._y = 0;
             }
-            lfnode.y += (yOffset || 0);
-            lfnode.dx = rectWidth(lfnode.records);
+            lfnode._y += (yOffset || 0);
+            lfnode._dx = rectWidth(lfnode.records);
             
-            //lfnode.x += lfnode.dx;
-            lfnode.dy = lfnode.records.length;
+            lfnode._dy = lfnode.records.length;
             if (children && (n = children.length)) {
                 var i = -1, c, yOffset = 0, n;
                 while (++i < n) {
                     position(c = children[i], yOffset)
-                    yOffset += c.dy;
+                    yOffset += c._dy;
                 }
             }
             lfnode.backwards = !!backwards;
@@ -117,6 +140,11 @@ var lifeflowData = function () {
     makeNodes.nextFunc = function(_) {
         if (!arguments.length) return nextFunc;
         nextFunc = _;
+        return makeNodes;
+    };
+    makeNodes.timelines = function(_) {
+        if (!arguments.length) return timelines;
+        timelines = _;
         return makeNodes;
     };
     //============================================================

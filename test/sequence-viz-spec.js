@@ -3,6 +3,8 @@
 /* global: describe */
 describe('lifeflow and timelines with simple data', function() {
     var self = this;
+    var eventNodeWidth = 2 * 1000 * 60 * 60 * 24; // ends up in miliseconds!
+    var alignmentLineWidth = 1 * 1000 * 60 * 60 * 24;
     var csv =   "id,event,date\n" +
                 "1,A,1/1/1950\n" +
                 "1,B,3/2/1950\n" +
@@ -114,9 +116,10 @@ describe('lifeflow and timelines with simple data', function() {
         beforeEach(function() {
             self.nodeTree = lifeflowData()
                     .eventNameProp('event')
+                    .eventNodeWidth(eventNodeWidth)
+                    .timelines(self.timelines)
                     (self.startRecs, 'noflatten');
             self.nodeList = self.nodeTree.flattenTree();
-            self.timelines.setUnits({round:true, withUnit: true});
         });
         describe('nodeTree', function() {
             it('should have 2 top-level values', function() {
@@ -144,19 +147,39 @@ describe('lifeflow and timelines with simple data', function() {
                 );
             });
             it('should have these x values', function() {
-                expect(self.nodeList.pluck('x').map(function(x) {
-                    var dur = moment.duration(x);
-                    return Math.round(dur.as(self.nodeList[0].records[0].unit('day')));
-                })).toEqual([ 0, 75, 85, 75, 165, 0, 10, 130, 160 ]);
+                expect(self.nodeList.invoke('xLogical',
+                    {unit:'day',round:true, withUnit: true, dontConvert:false}))
+                .toEqual( [ '0 days', '75 days', '85 days', '75 days', '165 days', '0 days', '10 days', '130 days', '160 days' ]);
             });
-            it('should have these x values', function() {
-                expect(self.nodeList.map(function(node) {
-                    return node.namePath() +
-                        node.records.invoke('toNext', 0, 'day').join(', ') +
-                        '; x: ' + self.timelines.asTime(node.x, 'day', false, true) + '; dx: ' + node.dx;
-                    var dur = moment.duration(x);
-                    return Math.round(dur.as(self.nodeList[0].records[0].unit('day')));
-                })).toEqual([ 0, 75, 85, 75, 165, 0, 10, 130, 160 ]);
+            it('nodes should have dx === mean(node.records.toNext)', function() {
+                self.nodeList.each(function(node) {
+                    expect(node.records.invoke('toNext', 0,
+                        {unit:'day',round:false, withUnit: false}).mean().valueOf())
+                    .toBeCloseTo(node.dx(
+                        {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
+                });
+            });
+            it('should write info about nodes to the console', function() {
+                self.nodeList.map(function(node) {
+                    var toNextMean = node.records.invoke('toNext', 0,
+                        {unit:'day',round:false, withUnit: false}).mean();
+                    var durs = node.records.invoke('toNext', 0,
+                        {unit:'day',round:false, withUnit: false});
+                    var info = {
+                        node: node.namePath(),
+                        xLogical: node.xLogical(
+                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
+                        x: node.x(
+                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
+                        dx: node.dx(
+                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
+                        y: node.y(), dy: node.dy(),
+                        durs: durs,
+                        toNextMean: toNextMean
+                    };
+                    console.log(JSON.stringify(info, null, 4));
+                    return 1;
+                });
             });
         });
     });
