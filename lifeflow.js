@@ -58,14 +58,14 @@ var lifeflowChart = function () {
                 .range([0,height])
                 .domain([0,lifeflowNodes
                     .where({depth:0})
-                    .pluck('dy')
+                    .invoke('dy')
                     .reduce(function(p,c) { return p + c }) - 1])
             x.domain([
                             d3.min([0].concat(lifeflowNodes.map(function(d) { 
-                                return d.x + d.dx
+                                return d.x() + d.dx()
                             }))),
                             d3.max([0].concat(lifeflowNodes.map(function(d) { 
-                                return d.x + d.dx 
+                                return d.x() + d.dx() 
                             })))
                         ]);
             relativeX = d3.scale.linear()
@@ -83,7 +83,7 @@ var lifeflowChart = function () {
                     })
             y.domain([0, _(lifeflowNodes).reduce(
                 function(memo,node){
-                    return Math.max(memo, node.y + node.dy)
+                    return Math.max(memo, node.y() + node.dy())
                 },0)]);
 
             enterNodes();
@@ -165,7 +165,7 @@ var lifeflowChart = function () {
                             return d.namePath({noRoot:false}) // don't need noRoot anymore
                         })
                         .attr('transform', function (d) {
-                            return 'translate(' + x(d.x) + ',' + y(d.y) + ')'
+                            return 'translate(' + x(d.x()) + ',' + y(d.y()) + ')'
                         })
                         .on("mouseover", function(d,i) {
                             dispatch.eventNodeMouseover(chart, this, d, i);
@@ -179,14 +179,14 @@ var lifeflowChart = function () {
                         .attr('fill', function (d) {
                             return color(d.valueOf())
                         })
-                        .attr('x', function(d) { return relativeX(d.dx)})
+                        .attr('x', function(d) { return relativeX(d.dx())})
                         .attr('width', relativeX(eventNodeWidth))
                         .attr('height', function (d) {
                             //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
-                            return y(d.dy)
+                            return y(d.dy())
                         })
                         //.attr('y', function(d) { return y(d.y) })
-                        .attr('height', function(d) { return y(d.dy) })
+                        .attr('height', function(d) { return y(d.dy()) })
                     //.on("mouseover", rectMouseover)
                     //.on("mouseout", rectMouseout)
                 return;
@@ -211,30 +211,30 @@ var lifeflowChart = function () {
                 */
                 var fmt = d3.format('5.0f');
                 nodes.attr('transform', function (d) {
-                            var xpos = x(d.x)
-                            return 'translate(' + xpos + ',' + y(d.y) + ')'
+                            var xpos = x(d.x())
+                            return 'translate(' + xpos + ',' + y(d.y()) + ')'
                         })
                 nodes.select('rect.event-node')
                     .attr('height', function (d) {
                         //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
-                        return y(d.dy)
+                        return y(d.dy())
                     })
                 nodes.select('rect.gap-fill')
                     .attr('height', function (d) {
                         //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
-                        return y(d.dy)
+                        return y(d.dy())
                     })
                     .attr('x', function(d) { 
-                        var shift = d.backwards ?  d.parent.dx :
-                                -d.parent.dx + eventNodeWidth;
+                        var shift = d.backwards ?  d.parent.dx() :
+                                -d.parent.dx() + eventNodeWidth;
                         return relativeX(shift)
                     })
                     .attr('width', function(d) { 
-                        return Math.max(relativeX( Math.abs(d.parent.dx) 
+                        return Math.max(relativeX( Math.abs(d.parent.dx()) 
                                 - eventNodeWidth), 0);
                     })
                     //.attr('y', function(d) { return y(d.y) })
-                    .attr('height', function(d) { return y(d.dy) })
+                    .attr('height', function(d) { return y(d.dy()) })
             }
         });
         return chart;
@@ -323,7 +323,7 @@ var lifeflowChart = function () {
                     });
                     //xFunc = function(d) { return relativeX(-d.toNext()) };
                     xFunc = function(d) {
-                            return relativeX(-lfnode.parent.dx -
+                            return relativeX(-lfnode.parent.dx() -
                                     d.toNext())
                     };
                 } else {
