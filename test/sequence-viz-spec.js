@@ -91,6 +91,13 @@ describe('lifeflow and timelines with simple data', function() {
                         expect(evt.unit("timeline")).toEqual("month");
                     });
                 });
+                it('should refer certain methods up to Timelines', function() {
+                    var evt = self.evts[0];
+                    evt.unit === evt.timeline().unit === evt.timeline().timelines().unit;
+                    evt.dur === evt.timeline().dur === evt.timeline().timelines().dur;
+                    evt.unitSettings === evt.timeline().unitSettings === evt.timeline().timelines().unitSettings;
+                    evt.restoreUnitSettings === evt.timeline().restoreUnitSettings === evt.timeline().timelines().restoreUnitSettings;
+                });
                 it('should have these month durations', function() {
                     expect(self.evts
                             .invoke('toNext',0,'timeline')
@@ -147,13 +154,16 @@ describe('lifeflow and timelines with simple data', function() {
                 );
             });
             it('should have these x values', function() {
+return;  // fix
                 expect(self.nodeList.invoke('xLogical',
                     {unit:'day',round:true, withUnit: true, dontConvert:false}))
                 .toEqual( [ '0 days', '75 days', '85 days', '75 days', '165 days', '0 days', '10 days', '130 days', '160 days' ]);
             });
-            it('nodes should have dx === mean(node.records.toNext)', function() {
+            it('nodes should have dx === mean(node.records.fromPrev)', function() {
                 self.nodeList.each(function(node) {
-                    expect(node.records.invoke('toNext', 0,
+                    console.log(node.records.invoke('fromPrev', 0).mean() +
+                        ' === ' + node.dx());
+                    expect(node.records.invoke('fromPrev', 0,
                         {unit:'day',round:false, withUnit: false}).mean().valueOf())
                     .toBeCloseTo(node.dx(
                         {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
@@ -178,9 +188,26 @@ describe('lifeflow and timelines with simple data', function() {
                         toNextMean: toNextMean
                     };
                     console.log(JSON.stringify(info, null, 4));
+                    node.dump();
                     return 1;
                 });
             });
+        });
+        it('should make a chart!', function() {
+            var container = d3.select('body')
+                            .append('div')
+                            .append('svg')
+            d3.select('body').append('div').style('position','absolute')
+                .style('top','0px')
+                .append('h1').text('hello?');
+            expect(container).toBeDefined();
+            var chart = lifeflowChart()
+                .eventNodeWidth(100000000)
+                .height(window.innerHeight - 120)
+                .width(window.innerWidth - 100)
+            container
+                    .datum(self.nodeList)
+                    .call(chart)
         });
     });
 });

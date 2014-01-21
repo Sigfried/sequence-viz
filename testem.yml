@@ -9,4 +9,5 @@ src_files:
     - 'bower_components/momentjs/moment.js'
     - 'evtData.js'
     - 'lifeflowData.js'
+    - 'lifeflow.js'
     - 'test/*.js'
