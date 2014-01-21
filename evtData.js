@@ -37,7 +37,7 @@ var evtData = function() {
     }
     function sortEvts(list) {
         return list.sort(function (a, b) {
-            var cmp = a.startDate() - b.startDate();
+            var cmp = a.dt() - b.dt();
             if (cmp === 0) {
                 if (eventOrder) {
                     cmp = eventOrder.indexOf(a.eventName())
@@ -55,11 +55,10 @@ var evtData = function() {
         this._eventName = this[eventNameProp];
     }
     Evt.prototype.id = function() {
-        fail('fix ref to _startDate');
-        return [this._entityId, this._eventName, this._startDate].join('/');
+        fail('fix ref to _dt');
+        return [this._entityId, this._eventName, this._dt].join('/');
     }
-    Evt.prototype.dt = 
-    Evt.prototype.startDate = function() {
+    Evt.prototype.dt = function() {
         return this._moment;
         //return this._startDate;
     }
@@ -82,9 +81,15 @@ var evtData = function() {
         return !! this.prev();
     };
     Evt.prototype.toNext = function(ifNoNext, unit) {
+        if (ifNoNext && isNaN(parseInt(ifNoNext))) {
+            fail('bad ifNoNext param: ' + ifNoNext);
+        }
         return this.hasNext() ? this.timeTo(this.next(), unit) : ifNoNext;
     };
     Evt.prototype.fromPrev = function(ifNoPrev, unit) {
+        if (ifNoPrev && isNaN(parseInt(ifNoPrev))) {
+            fail('bad ifNoPrev param: ' + ifNoPrev);
+        }
         return this.hasPrev() ? this.prev().timeTo(this, unit) : ifNoPrev;
     };
     Evt.prototype.startIdx = function(unit) {
@@ -92,6 +97,9 @@ var evtData = function() {
     };
     Evt.prototype.timeTo = function(otherEvt, unit) {
         return this.dur(otherEvt.dt() - this.dt(), unit);
+    };
+    Evt.prototype.timeFrom = function(otherEvt, unit) {
+        return - this.timeTo(otherEvt, unit);
     };
     Evt.prototype.timeline = function (_) {
         if (!arguments.length) return this._timeline;
@@ -146,7 +154,7 @@ var evtData = function() {
     };
     Timeline.prototype.endDate = function() {
         return this.lastEvt().dt();
-        return this.records[this.records.length - 1].startDate();
+        return this.records[this.records.length - 1].dt();
     };
     Timeline.prototype.duration = function(unit) {
         return this.firstEvt().timeTo(this.lastEvt(), unit);
@@ -210,12 +218,6 @@ var evtData = function() {
                     this.maxDuration(recalc));
         return this._timelineUnit;
     };
-    Evt.prototype.unit = function(unit) {
-        return this.timeline().unit(unit);
-    };
-    Timeline.prototype.unit = function(unit) {
-        return this.timelines().unit(unit);
-    };
     Timelines.prototype.unit = function(unit) {
         if (unit === "universe")
             return this.universeUnit();
@@ -242,7 +244,7 @@ var evtData = function() {
          _.extend(this._unitSettings, opts);
         return this;
     };
-    Timelines.prototype.unitSettingsRestore = function () {
+    Timelines.prototype.restoreUnitSettings = function () {
         return this._unitSettings = 
             this._unitSettingsStack.pop() || edata.unitSettings();
     };
@@ -259,7 +261,7 @@ var evtData = function() {
         if (! _.isEmpty(unit)) {
             this.unitSettings(tempSettings);
             result = this.formatDur(num);
-            this.unitSettingsRestore();
+            this.restoreUnitSettings();
         } else {
             result = this.formatDur(num);
         }
@@ -288,12 +290,6 @@ var evtData = function() {
             return newNum + ' ' + unit;
         }
         return newNum;
-    };
-    Evt.prototype.dur = function(num, unit) {
-        return this.timeline().dur(num, unit);
-    };
-    Timeline.prototype.dur = function(num, unit) {
-        return this.timelines().dur(num, unit);
     };
     moment.lang('relTime', {
         relativeTime : {
@@ -355,6 +351,19 @@ var evtData = function() {
     Timelines.prototype.whatAmI = function () {
         return Timelines.prototype;
     };
+    var methodsToPropogateDown = [
+        'unit', 'dur','unitSettings','restoreUnitSettings'
+        ];
+    _.each(methodsToPropogateDown, function(m) {
+        Timeline.prototype[m] = function() {
+            var tls = this.timelines();
+            return tls[m].apply(tls, arguments);
+        };
+        Evt.prototype[m] = function() {
+            var tl = this.timeline();
+            return tl[m].apply(tl, arguments);
+        };
+    });
     edata.entityIdProp = function (_) {
         if (!arguments.length) return entityIdProp;
         entityIdProp = _;
