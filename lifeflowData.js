@@ -16,6 +16,59 @@ var lifeflowData = function () {
     LifeflowNode.prototype.dy = function() {
         return this._dy;
     };
+    var dumpOpts = {
+                logFunc: function(o) { console.log(o) },
+                unit: { unit: 'timeline',
+                        withUnit: false,
+                        round: false },
+                path: true,
+                coords: true,
+                parentCoords: true,
+                stringifyReturn: false,
+                stringifyLog: false,
+                recsFromPrev: true,
+                recsToNext: true
+            };
+    LifeflowNode.prototype.dump = function(opts) {
+        var holdUnit = opts && opts.unit;
+        opts = _.extend(_.clone(dumpOpts), opts);
+        opts.unit = _.extend(_.clone(opts.unit), holdUnit);
+        var res = {};
+        if (opts.path) {
+            res.namePath = this.namePath();
+        }
+        if (opts.coords) {
+            res.x = this.x(opts.unit);
+            res.dx = this.dx(opts.unit);
+            res.xLogical = this.xLogical(opts.unit);
+            res.y = this.y();
+            res.dy = this.dy();
+        }
+        if (opts.parentCoords && this.parent) {
+            var p = this.parent;
+            res.parent_x = p.x(opts.unit);
+            res.parent_dx = p.dx(opts.unit);
+            res.parent_xLogical = p.xLogical(opts.unit);
+            res.parent_y = p.y();
+            res.parent_dy = p.dy();
+        }
+        if (opts.recsFromPrev) {
+            res.fromPrev = this.records.invoke('fromPrev', 0, opts.unit).sort();
+            res.fromPrevMin = res.fromPrev.min().valueOf();
+            res.fromPrevMax = res.fromPrev.max().valueOf();
+            res.fromPrevMean = res.fromPrev.mean().valueOf();
+            res.fromPrevMedian = res.fromPrev.median().valueOf();
+        }
+        if (opts.recsToNext) {
+            res.toNext = this.records.invoke('toNext', 0, opts.unit).sort();
+            res.toNextMin = res.toNext.min().valueOf();
+            res.toNextMax = res.toNext.max().valueOf();
+            res.toNextMean = res.toNext.mean().valueOf();
+            res.toNextMedian = res.toNext.median().valueOf();
+        }
+        opts.logFunc(opts.stringifyLog ? JSON.stringify(res) : res);
+        return opts.stringifyReturn ? JSON.stringify(res) : res;
+    };
     var 
         eventNameProp = null,
         timelines,  // just for date reporting context
@@ -25,24 +78,15 @@ var lifeflowData = function () {
         rectWidth = function(recs) {
             if (! (recs && recs.length)) return 0;
             var durations = recs
-                .filter(function(d) { return d.hasNext() })
-                .map(function(d) { 
-                    var next = nextFunc(d);
-                    // uses miliseconds
-                    return next ? d.timeTo(next) : 0;
-                });
+                .invoke('fromPrev')
+                .compact()
             return durations.length ? durations.mean().valueOf() : 0;
         },
-        nextFunc = function(d) { return d.next() }
-            ;
+        nextFunc = function(d) { return d.prev() };
     var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {
         var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
         function preListRecsHook(records) { // group next records, not the ones we start with
-            return _.chain(records)
-                            //.tap(function(d) { console.log(d) })
-                            .filter(nextFunc)
-                            .map(nextFunc)
-                            .value();
+            return records.invoke('next').compact();
         }
         function addChildren(list, notRoot) {
             if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
@@ -66,15 +110,16 @@ var lifeflowData = function () {
             return list;
         }
         var lfnodes = addChildren(startRecs);
-        var fakeRoot = supergroup.addListMethods([]).asRootVal();
-        fakeRoot.children = lfnodes;
         //lfnodes = position({children:lfnodes,records:[]}).children;
-        lfnodes = position(fakeRoot).children;
-
         var allNodes = lfnodes.flattenTree();
         allNodes.each(function(lfnode) {
             _.extend(lfnode, new LifeflowNode());
         });
+        var fakeRoot = supergroup.addListMethods([]).asRootVal();
+        _.extend(fakeRoot, new LifeflowNode());
+        fakeRoot.children = lfnodes;
+        lfnodes = position(fakeRoot).children;
+
 
         if (noflatten === "noflatten")
             return lfnodes;
@@ -83,25 +128,24 @@ var lifeflowData = function () {
 
         function position(lfnode, yOffset) {
             var children = lfnode.children;
+            lfnode._dy = lfnode.records.length;
             if (lfnode.parent) {
-                lfnode._x = lfnode.parent._x + lfnode.parent._dx 
-                    + eventNodeWidth;
-                lfnode._xLogical = lfnode.parent._xLogical + lfnode.parent._dx;
-                lfnode._y = lfnode.parent._y;
+                lfnode._dx = rectWidth(lfnode.records);
+                lfnode._x = lfnode.parent.x() + lfnode.dx() + eventNodeWidth;
+                lfnode.xLogical(lfnode.parent.xLogical() + lfnode.dx());
+                lfnode._y = lfnode.parent.y() + (yOffset || 0);
             } else {
-                lfnode._x = alignmentLineWidth * (!backwards || -1);
-                lfnode._xLogical = 0;
+                lfnode._dx = 0;
+                lfnode._x = alignmentLineWidth * (!backwards || -1) + lfnode.dx();
+                lfnode.xLogical(lfnode.dx());
                 lfnode._y = 0;
             }
-            lfnode._y += (yOffset || 0);
-            lfnode._dx = rectWidth(lfnode.records);
             
-            lfnode._dy = lfnode.records.length;
             if (children && (n = children.length)) {
                 var i = -1, c, yOffset = 0, n;
                 while (++i < n) {
                     position(c = children[i], yOffset)
-                    yOffset += c._dy;
+                    yOffset += c.dy();
                 }
             }
             lfnode.backwards = !!backwards;
