@@ -29,6 +29,20 @@ var lifeflowExtras = function() {
 
         // fill filter subs
     }
+    var tip = nv.models.tooltip().gravity('w').distance(23);
+    var showTooltip = function(e, offsetElement) {
+        tip
+            .gravity('e')
+            .position({ left: e.e.clientX, top: e.e.clientY })
+            .data(
+                {
+                    value: e.text,
+                    series: e.series,
+                })();
+    };
+    var hideTooltip = function() {
+        nv.tooltip.cleanup();
+    };
     function menuRecurse(d3Node, menuItems) {
         var newLIs = d3Node.selectAll('li')
                     .data(menuItems).enter()
@@ -63,7 +77,27 @@ var lifeflowExtras = function() {
 
 
     var nodesWithDistributionsShowing = [];
-    exp.gMouseover = function(lfChart, context, lfnode, i) {
+    exp.mouseout = function(lfChart, context, lfnode, i) {
+        hideTooltip();
+    };
+    exp.nodeTooltip = function(lfChart, context, lfnode, i) {
+        var tl = lfnode.records[0].timeline();
+                tl.unitSettings({unit:'timeline', withUnit:true, round:true});
+                showTooltip({
+                    value: lfnode,
+                    text: lfnode.namePath(),
+                    series: lfnode.pedigree().map(function(node) {
+                        return {
+                            key: node.toString(),
+                            value: node.dx(),
+                            color: lfChart.color()(node.toString())
+                        }
+                    }),
+                    e: d3.event
+                });
+                tl.restoreUnitSettings();
+    };
+    exp.showEvtDistribution = function(lfChart, context, lfnode, i) {
         /*
         d3.selectAll('rect')
             .transition().duration(700)
@@ -71,6 +105,7 @@ var lifeflowExtras = function() {
             */
         console.log('mouse over ' + nodesWithDistributionsShowing.length);
         console.log(nodesWithDistributionsShowing);
+        lfnode.dump({stringifyLog:false});
         var alreadyDisplayed = false;
         _(nodesWithDistributionsShowing).each(function(d) {
             if (d === lfnode) {
@@ -133,20 +168,23 @@ var lifeflowExtras = function() {
             .on("mouseover", function (d, i) {
                 d3.select(this).classed('hover', true)
                 var fmt = d3.time.format('%Y-%m-%d');
-                dispatch.elementMouseover({
+                var tl = d.timeline();
+                tl.unitSettings({unit:'timeline', withUnit:true, round:true});
+                showTooltip({
                     value: d,
-                    text: d.timeline() + ': ' + d.eventName() + 
+                    text: tl + ': ' + d.eventName() + 
                         ' - ' + d.toNext() + ' of ' +
-                        d.timeline().duration() + ' total ' + timeUnit,
+                        d.timeline().duration(),
                     series: _(d.timeline().records).map(function(rec) {
                         return {
                             key: rec.eventName(),
-                            value: fmt(rec.startDate()),
-                            color: color(rec.eventName())
+                            value: rec.dt().format('l'),// don't format here
+                            color: lfChart.color()(rec.eventName())
                         }
                     }),
                     e: d3.event
                 });
+                tl.restoreUnitSettings();
             })
         circle.style('fill-opacity', 0)
         //.style('stroke-opacity',1)

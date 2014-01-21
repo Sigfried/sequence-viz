@@ -19,14 +19,12 @@ var lifeflowChart = function () {
         bottom: 0,
         left: 0
         }
-        , edata
+        , lifeflowData
         , timelineData
         , entityIdProp = null,
         eventNameProp = null,
         eventNames = null,
         eventOrder = [],
-        unitProp,
-        timeUnit,
         alignChoices,
         startDateProp = null,
         endDateField = null,
@@ -43,7 +41,7 @@ var lifeflowChart = function () {
         //, color = nv.utils.defaultColor()
         , color = d3.scale.category20()
         , alignBy
-        , dispatch = d3.dispatch('eventNodeMouseover');
+        , dispatch = d3.dispatch('lifeflowMouseover', 'lifeflowMouseout');
         /*
         , dispatch = d3.dispatch('chartClick', 'elementClick', 
                 'elementDblClick', 'elementMouseover', 'elementMouseout',
@@ -52,19 +50,20 @@ var lifeflowChart = function () {
             ;
     //============================================================
     function chart(selection) {
-        selection.each(function (lifeflowNodes) {
+        selection.each(function (data) {
+            lifeflowData = data;
             x = d3.scale.linear().range([0,width])
             y = d3.scale.linear()
                 .range([0,height])
-                .domain([0,lifeflowNodes
+                .domain([0,lifeflowData
                     .where({depth:0})
                     .invoke('dy')
                     .reduce(function(p,c) { return p + c }) - 1])
             x.domain([
-                            d3.min([0].concat(lifeflowNodes.map(function(d) { 
+                            d3.min([0].concat(lifeflowData.map(function(d) { 
                                 return d.x() + d.dx()
                             }))),
-                            d3.max([0].concat(lifeflowNodes.map(function(d) { 
+                            d3.max([0].concat(lifeflowData.map(function(d) { 
                                 return d.x() + d.dx() 
                             })))
                         ]);
@@ -73,7 +72,7 @@ var lifeflowChart = function () {
                                 .domain([0, x.domain()[1] - x.domain()[0]]);
             var container = d3.select(this);
             var nodes = container.selectAll('g.event-node')
-                .data(lifeflowNodes
+                .data(lifeflowData
                     , function (d) {
                         var id = chart.alignBy() + d.namePath({noRoot:false}) + d.backwards
                         d.joinId = id;
@@ -81,81 +80,12 @@ var lifeflowChart = function () {
                         // paths can be the same on either
                         // side of an alignment, so include backwards flag
                     })
-            y.domain([0, _(lifeflowNodes).reduce(
+            y.domain([0, _(lifeflowData).reduce(
                 function(memo,node){
                     return Math.max(memo, node.y() + node.dy())
                 },0)]);
 
             enterNodes();
-            return
-            var updateInterval = 10; // miliseconds/jump
-            var xExtent = x.range()[1] - x.range()[0];
-            var exitTime = nodes.exit().size() ? 1000 : 0;
-            var jumps = exitTime / updateInterval;
-            var jumpDistance = xExtent / jumps;
-            var domainSlider = x.range()[1];
-            //var endTime = x.domain[0];
-            var doneSliding = false;
-            var jumpNum = 0;
-            var timerId = setInterval(function() {
-                domainSlider -= jumpDistance;
-                //console.log('slider at  ' + domainSlider);
-                if (jumpNum++ >= jumps) {
-                    clearInterval(timerId);
-                    doneSliding = true;
-                    nodes.each(function(d) {
-                        d.domNode = this;
-                    })
-                    nodes.filter(function(d) {
-                        return d.depth === 0;
-                    }).each(function(d) {
-                        bloom(this, 0);
-                    })
-                    dispatch.doneDrawing();
-                }
-            }, updateInterval);
-            nodes.exit()
-                .each(function(d,i) {
-                    var exitingNode = d3.select(this);
-                    if (d.toString() === "Root") //return; // kludgy?
-                        throw new Error("no longer needed, right?")
-                    var match = exitingNode.attr('transform')
-                        .match(/translate\(([^,]*),([^)]*)\)/)
-
-                    if (match) {
-                        var nodeX = Number(match[1]);
-                        var nodeY = Number(match[2]);
-                        var bar = exitingNode.select('rect.event-node');
-                        bar.attr('x',0);
-                        var gap = exitingNode.select('rect.gap-fill');
-                        var gapWidth = 0, gapX = 0;
-                        if (gap.size()) {
-                            gapWidth = parseInt(gap.attr('width'));
-                            var gapX = parseInt(gap.attr('x'));
-                        }
-                        var timerId = setInterval(function() {
-                            if (nodeX + gapWidth > domainSlider) {
-                                var gapDur = updateInterval * gapWidth / jumpDistance;
-                                d3.transition()
-                                    .duration(gapDur)
-                                    .ease('linear')
-                                    .each(function() {
-                                        bar.transition()
-                                            .attr('x', gapX)
-                                        gap.transition()
-                                            .attr('width', 0)
-                                    })
-                                exitingNode.transition().delay(gapDur).remove()
-                                clearInterval(timerId);
-                            }
-                            if (doneSliding) {
-                                throw new Error("shouldn't get here")
-                                clearInterval(timerId);
-                                exitingNode.remove();
-                            }
-                        }, updateInterval);
-                    }
-                })
             function enterNodes() {
                 var enteringGs = nodes.enter()
                     .append('g')
@@ -168,7 +98,10 @@ var lifeflowChart = function () {
                             return 'translate(' + x(d.x()) + ',' + y(d.y()) + ')'
                         })
                         .on("mouseover", function(d,i) {
-                            dispatch.eventNodeMouseover(chart, this, d, i);
+                            dispatch.lifeflowMouseover(chart, this, d, i);
+                        })
+                        .on("mouseout", function(d,i) {
+                            dispatch.lifeflowMouseout(chart, this, d, i);
                         })
                         //.on("mouseover", gMouseover)
                         //.on("mouseout", gMouseout)
@@ -245,6 +178,7 @@ var lifeflowChart = function () {
     // distribution lines still working
     //------------------------------------------------------------
 
+    /*
             function rectMouseover(d, i) {
                 console.log("not connected right now")
                 d3.select(this)
@@ -254,7 +188,7 @@ var lifeflowChart = function () {
                 var avg = Math.round(d3.mean(_.chain(d.records).invoke('timeline').invoke('duration').value()));
                 var tt = d.toString() + ', ' + d.records.length + ' timelines with ';
                 tt += avg + ' mean duration';
-                dispatch.elementMouseover({
+                dispatch.lifeflowMouseover({
                     value: d,
                     text: tt,
                     series: _(d.pedigree({asValues:true}))
@@ -269,7 +203,7 @@ var lifeflowChart = function () {
                 });
             }
             function rectMouseout(d, i) {
-                dispatch.elementMouseout();
+                dispatch.lifeflowMouseout();
             }
             function gMouseout(d, i) {
                 d3.select(this).selectAll('rect.gap-fill').attr('opacity',.5)
@@ -286,7 +220,7 @@ var lifeflowChart = function () {
                 d3.selectAll('rect.event-node')
                     .transition().delay(3000).duration(700)
                     .attr('opacity', 0.5);
-                    */
+                    * /
             }
             var nodesWithDistributionsShowing = [];
             function gMouseover(lfnode, i) {
@@ -295,7 +229,7 @@ var lifeflowChart = function () {
                 d3.selectAll('rect')
                     .transition().duration(700)
                     .attr('opacity', 0.4);
-                    */
+                    * / 
                 console.log('mouse over ' + nodesWithDistributionsShowing.length);
                 console.log(nodesWithDistributionsShowing);
                 var alreadyDisplayed = false;
@@ -360,7 +294,7 @@ var lifeflowChart = function () {
                     .on("mouseover", function (d, i) {
                         d3.select(this).classed('hover', true)
                         var fmt = d3.time.format('%Y-%m-%d');
-                        dispatch.elementMouseover({
+                        dispatch.lifeflowMouseover({
                             value: d,
                             text: d.timeline() + ': ' + d.eventName() + 
                                 ' - ' + d.toNext() + ' of ' +
@@ -390,11 +324,13 @@ var lifeflowChart = function () {
                     nodesWithDistributionsShowing.push(lfnode);
                 }
             }
+            */
     //============================================================
     // Expose Public Variables
     //------------------------------------------------------------
     chart.dispatch = dispatch;
 
+    /*
     chart.entityIdProp = function (_) {
         if (!arguments.length) return entityIdProp;
         entityIdProp = _;
@@ -425,6 +361,7 @@ var lifeflowChart = function () {
         defaultDuration = _;
         return chart;
     };
+    */
     chart.margin = function (_) {
         if (!arguments.length) return margin;
         margin.top = typeof _.top != 'undefined' ? _.top : margin.top;
@@ -502,9 +439,9 @@ var lifeflowChart = function () {
         xAxis = _;
         return chart;
     };
-    chart.evtData = function (_) {
-        if (!arguments.length) return edata;
-        edata = _;
+    chart.lifeflowData = function (_) {
+        if (!arguments.length) return lifeflowData;
+        lifeflowData = _;
         return chart;
     };
     chart.alignChoices = function (_) {
@@ -512,14 +449,15 @@ var lifeflowChart = function () {
         alignChoices = _;
         return chart;
     };
-    chart.alignmentLineWidth = function(_) {
-        if (!arguments.length) return alignmentLineWidth;
-        alignmentLineWidth = _;
-        return chart;
-    };
     chart.eventNodeWidth = function(_) {
         if (!arguments.length) return eventNodeWidth;
         eventNodeWidth = _;
+        return chart;
+    };
+    /*
+    chart.alignmentLineWidth = function(_) {
+        if (!arguments.length) return alignmentLineWidth;
+        alignmentLineWidth = _;
         return chart;
     };
     chart.endNodeWidth = function(_) {
@@ -527,19 +465,6 @@ var lifeflowChart = function () {
         endNodeWidth = _;
         return chart;
     };
-    chart.unitProp = function(_) {
-        if (!arguments.length) return unitProp;
-        unitProp = _;
-        timeUnit = 'units';
-        if (unitProp === 1) timeUnit = 'miliseconds';
-        if (unitProp === 1000) timeUnit = 'seconds';
-        if (unitProp === 1000*60) timeUnit = 'minutes';
-        if (unitProp === 1000*60*60) timeUnit = 'hours';
-        if (unitProp === 1000*60*60*24) timeUnit = 'days';
-        if (unitProp === 1000*60*60*24*7) timeUnit = 'weeks';
-        if (unitProp === 1000*60*60*24*365.25) timeUnit = 'years';
-        if (unitProp === 1000*60*60*24*365.25/12) timeUnit = 'months';
-        return chart;
-    };
+    */
     return chart;
 }
