@@ -62,6 +62,25 @@ var evtData = function() {
         return this._moment;
         //return this._startDate;
     }
+    Evt.prototype.dtStr = function(unit) {
+        unit = this.unit(unit);
+        var fmt;
+        switch (unit) {
+            case 'year':
+                fmt = 'YYYY'; break;  // need a way to specify other fmts
+            case 'month':
+                fmt = 'MMM YYYY'; break;
+            case 'day':
+                fmt = 'MM/DD/YYYY'; break;
+            case 'hour':
+                fmt = 'MM/DD/YYYY hh:mma'; break;
+            case 'minute':
+                fmt = 'MM/DD/YYYY hh:mm:sa'; break;
+            default:
+                fmt = 'MM/DD/YYYY hh:mm:SSSa'; break;
+        }
+        return this._moment.format(fmt);
+    }
     Evt.prototype.eventName = function() {
         return this._eventName;
     }
@@ -239,7 +258,12 @@ var evtData = function() {
             return this.timelineUnit();
         if (typeof unit === "string")
             return unit;
-        return this.unitSettings().unit;
+        var u = this.unitSettings().unit;
+        if (u === "universe")
+            return this.universeUnit();
+        if (u === "timeline")
+            return this.timelineUnit();
+        return u;
     };
     Evt.prototype.unit = function(unit) { return this.timeline().unit(unit) };
     Timeline.prototype.unit = function(unit) { return this.timelines().unit(unit) };
@@ -255,7 +279,7 @@ var evtData = function() {
     Timelines.prototype.unitSettings = function (opts) {
         if (typeof this._unitSettings === "undefined")
             this._unitSettings = _.clone(edata.unitSettings());
-        if (!arguments.length) return this._unitSettings;
+        if (!arguments.length || _.isEmpty(opts)) return this._unitSettings;
         this._unitSettingsStack.push(_.clone(this._unitSettings));
          _.extend(this._unitSettings, opts);
         return this;
