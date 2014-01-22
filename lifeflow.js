@@ -97,12 +97,6 @@ var lifeflowChart = function () {
                         .attr('transform', function (d) {
                             return 'translate(' + x(d.x()) + ',' + y(d.y()) + ')'
                         })
-                        .on("mouseover", function(d,i) {
-                            dispatch.lifeflowMouseover(chart, this, d, i);
-                        })
-                        .on("mouseout", function(d,i) {
-                            dispatch.lifeflowMouseout(chart, this, d, i);
-                        })
                         //.on("mouseover", gMouseover)
                         //.on("mouseout", gMouseout)
                 var newRects = enteringGs
@@ -120,6 +114,12 @@ var lifeflowChart = function () {
                         })
                         //.attr('y', function(d) { return y(d.y) })
                         .attr('height', function(d) { return y(d.dy()) })
+                        .on("mouseover", function(d,i) {
+                            dispatch.lifeflowMouseover(chart, this, d, i);
+                        })
+                        .on("mouseout", function(d,i) {
+                            dispatch.lifeflowMouseout(chart, this, d, i);
+                        })
                     //.on("mouseover", rectMouseover)
                     //.on("mouseout", rectMouseout)
                 return;
