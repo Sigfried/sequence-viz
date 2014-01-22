@@ -15,7 +15,7 @@ var lifeflowExtras = function() {
      *      show distribution on mouseover
      *          do/don't hide on mouseout so evt mouseover will work
      */
-    var dispatch = exp.dispatch = d3.dispatch('refresh')
+    var dispatch = exp.dispatch = d3.dispatch('refresh', 'distNodeMouseover');
 
     exp.menu = function(targetSelection, menuData) {
         targetSelection.selectAll('ul').data([1]).enter()
@@ -102,6 +102,27 @@ var lifeflowExtras = function() {
                 });
                 tl.restoreUnitSettings();
     };
+    exp.distNodeTooltip = function (lfChart, node, d, i) {
+        d3.select(node).classed('hover', true)
+        var fmt = d3.time.format('%Y-%m-%d');
+        var tl = d.timeline();
+        tl.unitSettings({unit:'timeline', withUnit:true, round:true});
+        showTooltip({
+            value: d,
+            text: tl + ': ' + d.eventName() + 
+                ' - ' + d.toNext() + ' of ' +
+                d.timeline().duration(),
+            series: _(d.timeline().records).map(function(rec) {
+                return {
+                    key: rec.eventName(),
+                    value: rec.dtStr(),
+                    color: lfChart.color()(rec.eventName())
+                }
+            }),
+            e: d3.event
+        });
+        tl.restoreUnitSettings();
+    };
     exp.showEvtDistribution = function(lfChart, context, lfnode, i) {
         /*
         d3.selectAll('rect')
@@ -170,27 +191,9 @@ var lifeflowExtras = function() {
                 return lfChart.yScale()(i)
             })
             .attr('r', 4)
-            .on("mouseover", function (d, i) {
-                d3.select(this).classed('hover', true)
-                var fmt = d3.time.format('%Y-%m-%d');
-                var tl = d.timeline();
-                tl.unitSettings({unit:'timeline', withUnit:true, round:true});
-                showTooltip({
-                    value: d,
-                    text: tl + ': ' + d.eventName() + 
-                        ' - ' + d.toNext() + ' of ' +
-                        d.timeline().duration(),
-                    series: _(d.timeline().records).map(function(rec) {
-                        return {
-                            key: rec.eventName(),
-                            value: rec.dt().format('l'),// don't format here
-                            color: lfChart.color()(rec.eventName())
-                        }
-                    }),
-                    e: d3.event
-                });
-                tl.restoreUnitSettings();
-            })
+            .on("mouseover", function(d, i) {
+                dispatch.distNodeMouseover(lfChart, this, d, i);
+            });
         circle.style('fill-opacity', 0)
         //.style('stroke-opacity',1)
         //.style('pointer-events','none')
