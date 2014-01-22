@@ -206,16 +206,30 @@ var evtData = function() {
                 this.invoke('endDate').min().valueOf(), 'justNumber');
         return this.dur(this._setDuration, unit);
     };
-    Timelines.prototype.universeUnit = function (recalc) {
-        if (typeof this._universeUnit === "undefined" || recalc)
+    /*
+     * @method Timelines.universeUnit
+     * @param {string or boolean} [arg] falsy to get current val; String
+     * to set new val; true to recalculate
+     * @returns current val or object of method
+     */
+    Timelines.prototype.universeUnit = function (arg) {
+        if (_.isString(arg)) {
+            this._universeUnit = arg;
+            return this;
+        }
+        if (typeof this._universeUnit === "undefined" || arg)
             this._universeUnit = edata.durationUnits(
-                    this.wholeSetDuration(recalc));
+                    this.wholeSetDuration(null, arg));
         return this._universeUnit;
     };
-    Timelines.prototype.timelineUnit = function (recalc) {
-        if (typeof this._timelineUnit === "undefined" || recalc)
+    Timelines.prototype.timelineUnit = function (arg) {
+        if (_.isString(arg)) {
+            this._timelineUnit = arg;
+            return this;
+        }
+        if (typeof this._timelineUnit === "undefined" || arg)
             this._timelineUnit = edata.durationUnits(
-                    this.maxDuration(recalc));
+                    this.maxDuration(null, arg));
         return this._timelineUnit;
     };
     Timelines.prototype.unit = function(unit) {
@@ -227,6 +241,8 @@ var evtData = function() {
             return unit;
         return this.unitSettings().unit;
     };
+    Evt.prototype.unit = function(unit) { return this.timeline().unit(unit) };
+    Timeline.prototype.unit = function(unit) { return this.timelines().unit(unit) };
     // @method unitSettings
     // @param {Object} [opts]
     // @param {boolean} [opts.unit] set default units, otherwise defaults to what edata has, which defaults to ms
@@ -244,10 +260,16 @@ var evtData = function() {
          _.extend(this._unitSettings, opts);
         return this;
     };
+    Evt.prototype.unitSettings = function(opts) { return this.timeline().unitSettings(opts) };
+    Timeline.prototype.unitSettings = function(opts) { return this.timelines().unitSettings(opts) };
+
     Timelines.prototype.restoreUnitSettings = function () {
         return this._unitSettings = 
             this._unitSettingsStack.pop() || edata.unitSettings();
     };
+    Evt.prototype.restoreUnitSettings = function() { return this.timeline().restoreUnitSettings() };
+    Timeline.prototype.restoreUnitSettings = function() { return this.timelines().restoreUnitSettings() };
+
     Timelines.prototype.dur = function(num, unit) {
         var tempSettings;
         if (unit === 'justNumber') {
@@ -267,6 +289,8 @@ var evtData = function() {
         }
         return result;
     }
+    Evt.prototype.dur = function(num,unit) { return this.timeline().dur(num,unit) };
+    Timeline.prototype.dur = function(num,unit) { return this.timelines().dur(num,unit) };
     // @method formatDur
     // report durations according to current settings
     // @param {number} num the duration to express in certain units
@@ -351,19 +375,6 @@ var evtData = function() {
     Timelines.prototype.whatAmI = function () {
         return Timelines.prototype;
     };
-    var methodsToPropogateDown = [
-        'unit', 'dur','unitSettings','restoreUnitSettings'
-        ];
-    _.each(methodsToPropogateDown, function(m) {
-        Timeline.prototype[m] = function() {
-            var tls = this.timelines();
-            return tls[m].apply(tls, arguments);
-        };
-        Evt.prototype[m] = function() {
-            var tl = this.timeline();
-            return tl[m].apply(tl, arguments);
-        };
-    });
     edata.entityIdProp = function (_) {
         if (!arguments.length) return entityIdProp;
         entityIdProp = _;
