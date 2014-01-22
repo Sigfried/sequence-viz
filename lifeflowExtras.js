@@ -86,10 +86,15 @@ var lifeflowExtras = function() {
                 showTooltip({
                     value: lfnode,
                     text: lfnode.namePath(),
-                    series: lfnode.pedigree().map(function(node) {
+                    series: lfnode.pedigree().map(function(node, i) {
                         return {
-                            key: node.toString(),
-                            value: node.dx(),
+                            key: i,
+                            value: [
+                                i ? node.dx() : '',
+                                i ?  '&nbsp;&rarr;&nbsp;' : '',
+                                node.toString(),
+                                node.records.length + ' evts'
+                            ],
                             color: lfChart.color()(node.toString())
                         }
                     }),
