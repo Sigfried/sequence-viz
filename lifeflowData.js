@@ -131,13 +131,13 @@ var lifeflowData = function () {
             lfnode._dy = lfnode.records.length;
             if (lfnode.parent) {
                 lfnode._dx = rectWidth(lfnode.records);
-                lfnode._x = lfnode.parent.x() + lfnode.dx() + eventNodeWidth;
                 lfnode.xLogical(lfnode.parent.xLogical() + lfnode.dx());
+                lfnode._x = lfnode.parent.x() + lfnode.dx() + eventNodeWidth;
                 lfnode._y = lfnode.parent.y() + (yOffset || 0);
             } else {
                 lfnode._dx = 0;
-                lfnode._x = alignmentLineWidth * (!backwards || -1) + lfnode.dx();
                 lfnode.xLogical(lfnode.dx());
+                lfnode._x = alignmentLineWidth * (!backwards || -1) + lfnode.dx();
                 lfnode._y = 0;
             }
             
