@@ -36,6 +36,7 @@ var lifeflowData = function () {
         var res = {};
         if (opts.path) {
             res.namePath = this.namePath();
+            res.depth = this.depth;
         }
         if (opts.coords) {
             res.x = this.x(opts.unit);
@@ -46,6 +47,8 @@ var lifeflowData = function () {
         }
         if (opts.parentCoords && this.parent) {
             var p = this.parent;
+            res.parentNamePath = p.namePath(),
+            res.parentDepth = p.depth,
             res.parent_x = p.x(opts.unit);
             res.parent_dx = p.dx(opts.unit);
             res.parent_xLogical = p.xLogical(opts.unit);
@@ -118,7 +121,9 @@ var lifeflowData = function () {
         var fakeRoot = supergroup.addListMethods([]).asRootVal();
         _.extend(fakeRoot, new LifeflowNode());
         fakeRoot.children = lfnodes;
+        lfnodes.each(function(d) { d.parent = fakeRoot; });
         lfnodes = position(fakeRoot).children;
+        lfnodes.each(function(d) { delete d.parent; });
 
 
         if (noflatten === "noflatten")
@@ -130,14 +135,14 @@ var lifeflowData = function () {
             var children = lfnode.children;
             lfnode._dy = lfnode.records.length;
             if (lfnode.parent) {
-                lfnode._dx = rectWidth(lfnode.records);
-                lfnode.xLogical(lfnode.parent.xLogical() + lfnode.dx());
-                lfnode._x = lfnode.parent.x() + lfnode.dx() + eventNodeWidth;
+                lfnode._dx = rectWidth(lfnode.records); // fromPrev
+                lfnode._xLogical = lfnode.parent.xLogical() + lfnode.dx();
+                lfnode._x = lfnode._xLogical + eventNodeWidth * lfnode.depth;
                 lfnode._y = lfnode.parent.y() + (yOffset || 0);
             } else {
                 lfnode._dx = 0;
-                lfnode.xLogical(lfnode.dx());
-                lfnode._x = alignmentLineWidth * (!backwards || -1) + lfnode.dx();
+                lfnode._xLogical = lfnode.dx();
+                lfnode._x = lfnode._xLogical + alignmentLineWidth * (!backwards || -1);
                 lfnode._y = 0;
             }
             

@@ -10,4 +10,5 @@ src_files:
     - 'evtData.js'
     - 'lifeflowData.js'
     - 'lifeflow.js'
+    - 'lifeflowExtras.js'
     - 'test/*.js'

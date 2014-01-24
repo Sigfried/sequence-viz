@@ -10,6 +10,7 @@ describe('lifeflow and timelines with simple data', function() {
                 "1,B,3/2/1950\n" +
                 "1,B,3/12/1950\n" +
                 "2,A,1/1/1960\n" +
+                "2,B,1/16/1960\n" +
                 "2,C,3/31/1960\n" +
                 "2,B,6/29/1960\n" +
                 "3,B,1/1/1970\n" +
@@ -17,8 +18,8 @@ describe('lifeflow and timelines with simple data', function() {
                 "3,B,5/11/1970\n" +
                 "3,B,6/10/1970\n";
     var data = d3.csv.parse(csv);
-    it('should have 10 event records', function() {
-        expect(data.length).toEqual(10);
+    it('should have 11 event records', function() {
+        expect(data.length).toEqual(11);
     });
     describe('Timelines object', function() {
         beforeEach(function() {
@@ -37,7 +38,7 @@ describe('lifeflow and timelines with simple data', function() {
         it('should have right numbers of Evts', function() {
             expect(self.timelines.length).toEqual(3);
             expect(self.timelines[0].records.length).toEqual(3);
-            expect(self.timelines[1].records.length).toEqual(3);
+            expect(self.timelines[1].records.length).toEqual(4);
             expect(self.timelines[2].records.length).toEqual(4);
         });
         it('should have year units across the whole set', function() {
@@ -76,7 +77,7 @@ describe('lifeflow and timelines with simple data', function() {
                     self.evts = self.timelines.pluck('records').flatten();
                 });
                 it('should have 10', function() {
-                    expect(self.evts.length).toEqual(10);
+                    expect(self.evts.length).toEqual(data.length);
                     self.evts.each(function(evt) {
                         expect(evt).toEqual(jasmine.any(self.edata.Evt));
                     });
@@ -102,13 +103,13 @@ describe('lifeflow and timelines with simple data', function() {
                     expect(self.evts
                             .invoke('toNext',0,'timeline')
                             .map(Math.round)
-                        ).toEqual([ 2, 0, 0, 3, 3, 0, 0, 4, 1, 0 ]);
+                        ).toEqual([ 2, 0, 0, 1, 2, 3, 0, 0, 4, 1, 0 ]);
                 });
                 it('should have these day durations', function() {
                     expect(self.evts
                             .invoke('toNext',0,'day')
                             .map(Math.round)
-                        ).toEqual([ 60, 10, 0, 90, 90, 0, 10, 120, 30, 0 ]);
+                        ).toEqual([ 60, 10, 0, 15, 75, 90, 0, 10, 120, 30, 0 ]);
                 });
             });
         });
@@ -141,7 +142,7 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.nodeTree.leafNodes().rawValues()).toEqual(['B','B','B']);
             });
             it('should have these leafNode paths', function() {
-                expect(self.nodeTree.leafNodes().invoke('namePath')).toEqual(["A/B/B","A/C/B","B/A/B/B"]);
+                expect(self.nodeTree.leafNodes().invoke('namePath')).toEqual(["A/B/B","A/B/C/B","B/A/B/B"]);
             });
         });
         describe('all nodes', function() {
@@ -150,7 +151,7 @@ describe('lifeflow and timelines with simple data', function() {
             });
             it('should have these paths', function() {
                 expect(self.nodeList.invoke('namePath')).toEqual(
-                    ["A","A/B","A/B/B","A/C","A/C/B","B","B/A","B/A/B","B/A/B/B"]
+                    ['A','A/B','A/B/B','A/B/C','A/B/C/B','B','B/A','B/A/B','B/A/B/B']
                 );
             });
             it('should have these x values', function() {
@@ -169,6 +170,7 @@ return;  // fix
                         {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
                 });
             });
+            /*
             it('should write info about nodes to the console', function() {
                 self.nodeList.map(function(node) {
                     var toNextMean = node.records.invoke('toNext', 0,
@@ -192,22 +194,7 @@ return;  // fix
                     return 1;
                 });
             });
-        });
-        it('should make a chart!', function() {
-            var container = d3.select('body')
-                            .append('div')
-                            .append('svg')
-            d3.select('body').append('div').style('position','absolute')
-                .style('top','0px')
-                .append('h1').text('hello?');
-            expect(container).toBeDefined();
-            var chart = lifeflowChart()
-                .eventNodeWidth(100000000)
-                .height(window.innerHeight - 120)
-                .width(window.innerWidth - 100)
-            container
-                    .datum(self.nodeList)
-                    .call(chart)
+            */
         });
     });
 });

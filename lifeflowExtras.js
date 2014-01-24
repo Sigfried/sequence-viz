@@ -1,4 +1,5 @@
 'use strict';
+window.nv = {models:{}, utils:{}};
 var lifeflowExtras = function() {
     var exp = function() {}; // export container
     /* menu/control ideas....
@@ -29,8 +30,9 @@ var lifeflowExtras = function() {
 
         // fill filter subs
     }
-    var tip = nv.models.tooltip().gravity('w').distance(23);
-    var showTooltip = function(e, offsetElement) {
+    var tip;
+    var showTooltip = exp.showTooltip = function(e, offsetElement) {
+        exp.tip = tip = tip || window.nv.models.tooltip().gravity('w').distance(23);
         tip
             .gravity('e')
             .position({ left: e.e.clientX, top: e.e.clientY })
@@ -82,25 +84,40 @@ var lifeflowExtras = function() {
     };
     exp.nodeTooltip = function(lfChart, context, lfnode, i) {
         var tl = lfnode.records[0].timeline();
-                tl.unitSettings({unit:'timeline', withUnit:true, round:true});
-                showTooltip({
-                    value: lfnode,
-                    text: lfnode.namePath(),
-                    series: lfnode.pedigree().map(function(node, i) {
-                        return {
-                            key: i,
-                            value: [
-                                i ? node.dx() : '',
-                                i ?  '&nbsp;&rarr;&nbsp;' : '',
-                                node.toString(),
-                                node.records.length + ' evts'
-                            ],
-                            color: lfChart.color()(node.toString())
-                        }
-                    }),
-                    e: d3.event
-                });
-                tl.restoreUnitSettings();
+        tl.unitSettings({unit:'timeline', withUnit:true, round:true});
+        showTooltip({
+            value: lfnode,
+            text: lfnode.namePath(),
+            series: lfnode.pedigree().map(function(node, i) {
+                return {
+                    key: i,
+                    value: [
+                        i ? node.dx() : '',
+                        i ?  '&nbsp;&rarr;&nbsp;' : '',
+                        node.toString(),
+                        node.records.length + ' evts'
+                    ],
+                    color: lfChart.color()(node.toString())
+                }
+            }),
+            e: d3.event
+        });
+        tl.restoreUnitSettings();
+    };
+    exp.nodeDumpTooltip = function(lfChart, context, lfnode, i) {
+        showTooltip({
+            value: lfnode,
+            text: lfnode.namePath(),
+            series: _.unchain(
+                lfnode.dump( {unit:{unit:'timeline', 
+                    withUnit:true, round:true}}))
+                .pairs()
+                .map(function(p) {
+                    return {key:p[0],value:p[1]};
+                })
+                .extend({color:lfChart.color()(lfnode.toString())}),
+            e: d3.event
+        });
     };
     exp.distNodeTooltip = function (lfChart, node, d, i) {
         d3.select(node).classed('hover', true)
@@ -131,7 +148,7 @@ var lifeflowExtras = function() {
             */
         console.log('mouse over ' + nodesWithDistributionsShowing.length);
         console.log(nodesWithDistributionsShowing);
-        lfnode.dump({stringifyLog:false});
+        //lfnode.dump({stringifyLog:false});
         var alreadyDisplayed = false;
         _(nodesWithDistributionsShowing).each(function(d) {
             if (d === lfnode) {
