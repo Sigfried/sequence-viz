@@ -119,19 +119,24 @@ var lifeflowExtras = function() {
             e: d3.event
         });
     };
-    exp.distNodeTooltip = function (lfChart, node, d, i) {
+    exp.distNodeTooltip = function (lfChart, node, rec, i) {
+        var lfnode = node.parentNode.__data__;
         d3.select(node).classed('hover', true)
         var fmt = d3.time.format('%Y-%m-%d');
-        var tl = d.timeline();
+        var tl = rec.evt.timeline();
         tl.unitSettings({unit:'timeline', withUnit:true, round:true});
         showTooltip({
-            value: d,
-            text: tl + ': ' + d.eventName() + 
-                ' - ' + d.toNext() + ' of ' +
-                d.timeline().duration(),
-            series: _(d.timeline().records).map(function(rec) {
+            value: rec.evt,
+            text: tl + ': ' + rec.evt.eventName() + 
+                ' - ' + rec.evt.toNext() + ' of ' +
+                rec.evt.timeline().duration(),
+            series: _(rec.evt.timeline().records).map(function(rec, i) {
+                var evtName = rec.eventName();
+                if (i > lfnode.depth) {
+                    evtName = '(' + evtName + ')';
+                }
                 return {
-                    key: rec.eventName(),
+                    key: evtName,
                     value: rec.dtStr(),
                     color: lfChart.color()(rec.eventName())
                 }
@@ -168,6 +173,10 @@ var lifeflowExtras = function() {
         var recs, xFunc;
         if (!lfnode.parent) {
             recs = [];
+        } else {
+            recs = lfnode.recs();
+        }
+        /*
         } else if (lfnode.backwards) {
             recs = lfnode.records.sort(function (a, b) {
                 return a.toNext() - b.toNext();
@@ -185,10 +194,13 @@ var lifeflowExtras = function() {
                 return lfChart.relativeX()(d.fromPrev())
             };
         }
+        */
         var line = d3.svg.line()
-            .x(xFunc)
+            //.x(xFunc)
+            .x(function(rec) {
+                return lfChart.relativeX()(rec.offset); })
             .y(function (d, i) {
-                return lfChart.yScale()(i)
+                return lfChart.yScale()(i + 0.5)
             });
         var path = d3.select(context).selectAll('path')
             .data([recs])
@@ -203,9 +215,10 @@ var lifeflowExtras = function() {
             .data(recs)
         circle.enter()
             .append('circle')
-            .attr('cx', xFunc)
-            .attr('cy', function (d, i) {
-                return lfChart.yScale()(i)
+            .attr('cx', function(rec) {
+                return lfChart.relativeX()(rec.offset); })
+            .attr('cy', function (rec, i) {
+                return lfChart.yScale()(i + 0.5)
             })
             .attr('r', 4)
             .on("mouseover", function(d, i) {

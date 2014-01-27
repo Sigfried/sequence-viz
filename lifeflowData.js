@@ -16,6 +16,18 @@ var lifeflowData = function () {
     LifeflowNode.prototype.dy = function() {
         return this._dy;
     };
+    LifeflowNode.prototype.recs = function() {
+        var lfnode = this;
+        return lfnode.records.map(function(evt) {
+            var rec = {
+                toEvtInParent: toEvtInParent(lfnode, evt),
+                evt: evt
+            };
+            rec.offset = rec.toEvtInParent - lfnode.dx() * 
+                (lfnode.backwards ? -1 : 1);
+            return rec;
+        }).sortBy('offset');
+    };
     var dumpOpts = {
                 logFunc: function(o) { console.log(o) },
                 unit: { unit: 'timeline',
@@ -72,16 +84,23 @@ var lifeflowData = function () {
         opts.logFunc(opts.stringifyLog ? JSON.stringify(res) : res);
         return opts.stringifyReturn ? JSON.stringify(res) : res;
     };
+    function toEvtInParent(lfnode, evt) {
+        if (lfnode.backwards)
+            return evt.toNext();
+        return evt.fromPrev();
+    }
     var 
         eventNameProp = null,
         timelines,  // just for date reporting context
         alignmentLineWidth = 0,
         eventNodeWidth = 0,
         endNodeWidth = 0,
-        rectWidth = function(recs) {
+        rectWidth = function(lfnode) {
+            var recs = lfnode.records;
             if (! (recs && recs.length)) return 0;
             var durations = recs
-                .invoke('fromPrev')
+                .map(function(rec) { return toEvtInParent(lfnode,rec); })
+                //.invoke('fromPrev')
                 .compact()
             return durations.length ? durations.mean().valueOf() : 0;
         },
@@ -135,7 +154,7 @@ var lifeflowData = function () {
             var children = lfnode.children;
             lfnode._dy = lfnode.records.length;
             if (lfnode.parent) {
-                lfnode._dx = rectWidth(lfnode.records); // fromPrev
+                lfnode._dx = rectWidth(lfnode); // fromPrev
                 lfnode._xLogical = lfnode.parent.xLogical() + lfnode.dx();
                 lfnode._x = lfnode._xLogical + eventNodeWidth * lfnode.depth;
                 lfnode._y = lfnode.parent.y() + (yOffset || 0);
