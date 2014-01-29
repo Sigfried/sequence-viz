@@ -124,7 +124,6 @@ describe('lifeflow and timelines with simple data', function() {
         beforeEach(function() {
             self.nodeTree = lifeflowData()
                     .eventNameProp('event')
-                    .eventNodeWidth(eventNodeWidth)
                     .timelines(self.timelines)
                     (self.startRecs, 'noflatten');
             self.nodeList = self.nodeTree.flattenTree();
