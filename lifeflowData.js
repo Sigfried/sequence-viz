@@ -7,9 +7,6 @@ var lifeflowData = function () {
     LifeflowNode.prototype.dx = function(unit) {
         return timelines.dur(this._dx, unit);
     };
-    LifeflowNode.prototype.xLogical = function(unit) {
-        return timelines.dur(this._xLogical, unit);
-    };
     LifeflowNode.prototype.y = function() {
         return this._y;
     };
@@ -53,7 +50,6 @@ var lifeflowData = function () {
         if (opts.coords) {
             res.x = this.x(opts.unit);
             res.dx = this.dx(opts.unit);
-            res.xLogical = this.xLogical(opts.unit);
             res.y = this.y();
             res.dy = this.dy();
         }
@@ -63,7 +59,6 @@ var lifeflowData = function () {
             res.parentDepth = p.depth,
             res.parent_x = p.x(opts.unit);
             res.parent_dx = p.dx(opts.unit);
-            res.parent_xLogical = p.xLogical(opts.unit);
             res.parent_y = p.y();
             res.parent_dy = p.dy();
         }
@@ -92,9 +87,6 @@ var lifeflowData = function () {
     var 
         eventNameProp = null,
         timelines,  // just for date reporting context
-        alignmentLineWidth = 0,
-        eventNodeWidth = 0,
-        endNodeWidth = 0,
         rectWidth = function(lfnode) {
             var recs = lfnode.records;
             if (! (recs && recs.length)) return 0;
@@ -155,13 +147,11 @@ var lifeflowData = function () {
             lfnode._dy = lfnode.records.length;
             if (lfnode.parent) {
                 lfnode._dx = rectWidth(lfnode); // fromPrev
-                lfnode._xLogical = lfnode.parent.xLogical() + lfnode.dx();
-                lfnode._x = lfnode._xLogical + eventNodeWidth * lfnode.depth;
+                lfnode._x = lfnode.parent.x() + lfnode.dx();
                 lfnode._y = lfnode.parent.y() + (yOffset || 0);
             } else {
                 lfnode._dx = 0;
-                lfnode._xLogical = lfnode.dx();
-                lfnode._x = lfnode._xLogical + alignmentLineWidth * (!backwards || -1);
+                lfnode._x = lfnode.dx();
                 lfnode._y = 0;
             }
             
@@ -183,21 +173,6 @@ var lifeflowData = function () {
     makeNodes.eventNameProp = function (_) {
         if (!arguments.length) return eventNameProp;
         eventNameProp = _;
-        return makeNodes;
-    };
-    makeNodes.alignmentLineWidth = function(_) {
-        if (!arguments.length) return alignmentLineWidth;
-        alignmentLineWidth = _;
-        return makeNodes;
-    };
-    makeNodes.eventNodeWidth = function(_) {
-        if (!arguments.length) return eventNodeWidth;
-        eventNodeWidth = _;
-        return makeNodes;
-    };
-    makeNodes.endNodeWidth = function(_) {
-        if (!arguments.length) return endNodeWidth;
-        endNodeWidth = _;
         return makeNodes;
     };
     makeNodes.rectWidth = function(_) {

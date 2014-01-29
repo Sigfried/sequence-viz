@@ -86,6 +86,10 @@ var lifeflowChart = function () {
                 },0)]);
 
             enterNodes();
+            function xPos(lfnode) {
+                return x(lfnode.x() + lfnode.depth * eventNodeWidth
+                        + alignmentLineWidth);
+            }
             function enterNodes() {
                 var enteringGs = nodes.enter()
                     .append('g')
@@ -95,7 +99,7 @@ var lifeflowChart = function () {
                             return d.namePath({noRoot:false}) // don't need noRoot anymore
                         })
                         .attr('transform', function (d) {
-                            return 'translate(' + x(d.x()) + ',' + y(d.y()) + ')'
+                            return 'translate(' + xPos(d) + ',' + y(d.y()) + ')'
                         })
                         //.on("mouseover", gMouseover)
                         //.on("mouseout", gMouseout)
