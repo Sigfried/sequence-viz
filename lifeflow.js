@@ -6,8 +6,8 @@
  * written.
  */
 'use strict';
-var lifeflowChart = function () {
-    /** @namespace lifeflowChart */
+var lifeflowBare = function () {
+    /** @namespace lifeflow */
 
     //============================================================
     // Public Variables with Default Settings
@@ -32,8 +32,8 @@ var lifeflowChart = function () {
         alignmentLineWidth = 28,
         eventNodeWidth = 0,
         endNodeWidth = 0,
-        width = 960,
-        height = 500,
+        width,
+        height,
         id = Math.floor(Math.random() * 10000) //Create semi-unique ID in case user doesn't select one
         , x = d3.scale.linear()
         , y = d3.scale.linear()
@@ -41,24 +41,20 @@ var lifeflowChart = function () {
         //, color = nv.utils.defaultColor()
         , color = d3.scale.category20()
         , alignBy
-        , dispatch = d3.dispatch('lifeflowMouseover', 'lifeflowMouseout');
-        /*
+        //, dispatch = d3.dispatch('lifeflowMouseover', 'lifeflowMouseout');
         , dispatch = d3.dispatch('chartClick', 'elementClick', 
                 'elementDblClick', 'elementMouseover', 'elementMouseout',
-                'toggleEvt','alignBy','selectRecs','doneDrawing'),
-        */
+                'toggleEvt','alignBy','selectRecs','doneDrawing'
+                ,'areaClick'
+
+                ,'tooltipHide','tooltipShow','lifeflowMouseover', 'lifeflowMouseout');
             ;
     //============================================================
     function chart(selection) {
         selection.each(function (data) {
             lifeflowData = data;
-            x = d3.scale.linear().range([0,width])
-            y = d3.scale.linear()
-                .range([0,height])
-                .domain([0,lifeflowData
-                    .where({depth:0})
-                    .invoke('dy')
-                    .reduce(function(p,c) { return p + c }, 0) - 1])
+            y.range([0,height]);
+            x.range([0,width]);
             x.domain([
                             d3.min([0].concat(lifeflowData.map(function(d) { 
                                 return d.x() + d.dx()
@@ -111,7 +107,7 @@ var lifeflowChart = function () {
                             return color(d.valueOf())
                         })
                         //.attr('x', function(d) { return relativeX(d.dx())})
-                        .attr('width', relativeX(eventNodeWidth))
+                        .attr('width', eventNodeWidth)
                         .attr('height', function (d) {
                             //console.log(d.dy + '   ' + this.className.baseVal + '   ' + d.namePath())
                             return y(d.dy())
@@ -418,12 +414,6 @@ var lifeflowChart = function () {
         if (!arguments.length) return color;
         //color = nv.utils.getColor(_);
         color = _;
-        return chart;
-    };
-
-    chart.disabled = function (_) {
-        if (!arguments.length) return disabled;
-        disabled = _;
         return chart;
     };
 
