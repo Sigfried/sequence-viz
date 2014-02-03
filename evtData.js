@@ -5,8 +5,9 @@
  */
 
 'use strict';
-if (typeof(require) !== "undefined") { // make it work in node or browsers or other contexts
-    moment = require('moment.js'); // otherwise assume it was included by html file
+if (typeof(require) !== "undefined") {
+    var _ = require('supergroup');
+    var moment = require('moment');
 }
 var evtData = function() {
     /** @namespace evtData */

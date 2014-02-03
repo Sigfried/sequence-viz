@@ -1,6 +1,7 @@
 {
   "name": "sequence-viz",
-  "version": "0.0.1",
+  "main": "bundle.js",
+  "version": "0.0.3",
   "description": "An integrated set of visualizations for event data.",
   "keywords": [
     "groups",
@@ -22,9 +23,8 @@
   },
   "dependencies": {
     "d3": "3.1.6",
-    "underscore": "1.4.4",
-    "underscore-unchained": "0.0.1",
-    "supergroup": "0.0.1"
+    "supergroup": "0.0.4",
+    "moment": "~2.5.1"
   },
   "devDependencies": {
     "requirejs": "~2.1.9",
