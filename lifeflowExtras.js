@@ -1,5 +1,6 @@
 'use strict';
-window.nv = {models:{}, utils:{}};
+
+window.nv = nv || {models:{}, utils:{}};
 var lifeflowExtras = function() {
     var exp = function() {}; // export container
     /* menu/control ideas....
@@ -177,7 +178,7 @@ var lifeflowExtras = function() {
             recs = lfnode.recs();
         }
         /*
-        } else if (lfnode.backwards) {
+         else if (lfnode.backwards) {
             recs = lfnode.records.sort(function (a, b) {
                 return a.toNext() - b.toNext();
             });
@@ -239,5 +240,20 @@ var lifeflowExtras = function() {
             nodesWithDistributionsShowing.push(lfnode);
         }
     }
+    exp.xAxis = function(container) {
+            var gEnter = svgChart.enter()
+                            .append('div')
+                                //.style('width', availableWidth)
+                                .style('height', chartFullHeight)
+                                .style('overflow-y', 'scroll')
+                            .append('svg').attr('class', 'svg-chart')
+                                //.attr('width', availableWidth)
+                                .attr('height', chartFullHeight)
+
+            gEnter.append('g').attr('class', 'nv-x nv-axis')
+            gEnter
+                .append('g').attr('class', 'nvd3 nv-wrap nv-evt-chart')
+
+    };
     return exp;
 }
