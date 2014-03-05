@@ -1,19 +1,18 @@
 module.exports = {
-    entry: './sequence-viz.js',
+    entry: './sequence-viz-spec.js',
     output: {
         path: './',
-        filename: 'bundle.js',
+        filename: './bundle.js',
     },
     resolve: {
         alias: { moment: 'moment/moment.js'},
-        modulesDirectories: ['node_modules', 'bower_components'],
+        modulesDirectories: ['../node_modules', '../bower_components'],
     },
-    plugins: ['concat'],
     //devtool:"eval",
     devtool: "source-map",
     //watch: true,
     colors: true,
     progress: true,
-    cache: false,
+    cache: true,
     debug: true
 };

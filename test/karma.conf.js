@@ -3,6 +3,26 @@
 
 module.exports = function(config) {
   config.set({
+    preprocessors: {
+      'sequence-viz-spec.js': ['webpack']
+    },
+    webpack: {
+       cache: true // webpack configuration
+    },
+    webpackServer: {
+            // webpack-dev-server configuration
+            // webpack-dev-middleware configuration
+    },
+    // the port used by the webpack-dev-server
+    // defaults to "config.port" + 1
+    webpackPort: 1234,
+    plugins: [
+       require("karma-webpack"),
+       require("karma-chrome-launcher"),
+       require("karma-jasmine")
+    ],
+
+
 
     // base path, that will be used to resolve files and exclude
     basePath: '',
@@ -15,20 +35,22 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
+        'sequence-viz-spec.js'
   // TEMPORARY LOCATIONS!!!!
-      '../../underscore-unchained/bower_components/underscore/underscore.js',
-      '../../underscore-unchained/bower_components/1670507/underscoreAddon.js',
-      '../../underscore-unchained/src/underscore-unchained.js',
-      '../../supergroup/supergroup.js',
-      '../node_modules/d3/d3.js',
+      //'../../underscore-unchained/bower_components/underscore/underscore.js',
+      //'../../underscore-unchained/bower_components/1670507/underscoreAddon.js',
+      //'../../underscore-unchained/src/underscore-unchained.js',
+      //'../../supergroup/supergroup.js',
+      //'../node_modules/d3/d3.js',
+
       //'../bower_components/underscore/underscore.js',
       //'../bower_components/1670507/underscoreAddon.js',
       //'../bower_components/underscore-unchained/src/underscore-unchained.js',
       //'../supergroup.js',
-      '../bower_components/momentjs/moment.js',
-      '../evtData.js',
-      '../lifeflowData.js',
-      '*.js'
+      //'../bower_components/momentjs/moment.js',
+      //'../evtData.js',
+      //'../lifeflowData.js',
+      //'*.js'
       //, {pattern: './hurricane.csv', included: false}
       //, {pattern: './base/hurricane.csv', included: false}
     ],
@@ -55,7 +77,7 @@ module.exports = function(config) {
 
     // level of logging
     // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-    logLevel: config.LOG_INFO,
+    logLevel: config.LOG_DEBUG,
 
 
     // enable / disable watching file and executing tests whenever any file changes
@@ -70,9 +92,8 @@ module.exports = function(config) {
     // - Safari (only Mac; has to be installed with `npm install karma-safari-launcher`)
     // - PhantomJS
     // - IE (only Windows; has to be installed with `npm install karma-ie-launcher`)
-    browsers: ['PhantomJS'
-        //,'Chrome'
-        ],
+    browsers: [//'PhantomJS',
+            'Chrome' ],
 
 
     // If browser does not capture in given timeout [ms], kill it

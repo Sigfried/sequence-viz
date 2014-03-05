@@ -30,14 +30,8 @@
     "url": "git@github.com:Sigfried/sequence-viz.git"
   },
   "dependencies": {
-    "d3": "3.3.13",
-    "underscore": "1.4.4",
-    "underscore-unchained": "0.1.2",
     "supergroup": "0.0.2",
     "jquery": "1.9.1",
     "moment": "momentjs#~2.5.1"
-  },
-  "resolutions": {
-    "underscore-unchained": "0.1.2"
   }
 }
