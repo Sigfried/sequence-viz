@@ -6,7 +6,7 @@ module.exports = {
     },
     resolve: {
         alias: { moment: 'moment/moment.js'},
-        modulesDirectories: ['../node_modules', '../bower_components'],
+        modulesDirectories: ['../node_modules'],
     },
     //devtool:"eval",
     devtool: "source-map",
