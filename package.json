@@ -33,7 +33,7 @@
     "d3": "^3.1.6",
     "lodash": "^3.9.3",
     "moment": "^2.5.1",
-    "supergroup": "^1.0.9"
+    "supergroup": "^1.0.10"
   },
   "devDependencies": {
     "jsdoc": "^3.3.0",

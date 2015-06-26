@@ -16,6 +16,7 @@ var evtData = function() {
         , eventNameProp
         , startDateProp
         , unitSettings = {unit: 'ms'}
+        , dateFormat = "M/D/YYYY"
         , eventOrder
         , filterFunc = function() { return true } // not used
         ;
@@ -48,10 +49,10 @@ var evtData = function() {
             return cmp;
         })
     }
-    function Evt(raw, id) {
+    function Evt(raw, id, dateFormat) {
         _.extend(this, raw);
         this.eId = id;
-        this._moment = toDate(this[startDateProp]);
+        this._moment = toDate(this[startDateProp], dateFormat);
         this._entityId = this[entityIdProp];
         this._eventName = this[eventNameProp];
     }
@@ -196,7 +197,7 @@ var evtData = function() {
     function Timelines() { }
     var makeTimelines = function(data) { // have some old code using this
         var evts = _.chain(data)
-            .map(function(d,i) { return new Evt(d,i); })
+            .map(function(d,i) { return new Evt(d,i, dateFormat); })
             .value();
         var timelines = _.supergroup(evts, entityIdProp);
         timelines = timelines
@@ -344,7 +345,7 @@ var evtData = function() {
         }
         return newNum;
     };
-    moment.lang('relTime', {
+    moment.locale('relTime', {
         relativeTime : {
             future: "%s",
             past:   "%s",
@@ -361,12 +362,12 @@ var evtData = function() {
             yy: "year"
         }
     });
-    moment.lang('en');
+    moment.locale('en');
     edata.durationUnits = function(dur) {
-        var lang = moment.lang();
-        moment.lang('relTime');
+        var locale = moment.locale();
+        moment.locale('relTime');
         var unit = moment.duration(dur).humanize();
-        moment.lang(lang);
+        moment.locale(locale);
         return unit;
     };
     Timelines.prototype.data = function () {

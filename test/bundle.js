@@ -156,7 +156,7 @@
 	                    expect(_(self.evts)
 	                            .invoke('toNext',0,'timeline')
 	                            .map(Math.round).value()
-	                        ).toEqual([ 2, 0, 0, 1, 2, 3, 0, 0, 4, 1, 0 ]);
+	                        ).toEqual([ 2, 0, 0, 0, 2, 3, 0, 0, 4, 1, 0 ]);
 	                });
 	                it('should have these day durations', function() {
 	                    expect(_(self.evts)
@@ -613,7 +613,7 @@
 	
 	        return _.chain(this.descendants()).filter(
 	                function(d){
-	                    return !('children' in d)
+	                    return _.isEmpty(d.children);
 	                }).addSupergroupMethods().value();
 	
 	        var ret = [this];
@@ -942,6 +942,7 @@
 	    sgCompare: supergroup.compare,
 	    sgCompareValue: supergroup.compareValue,
 	    hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
+	    mean: function(data) { return _.sum(data) / data.length },
 	});
 	
 	if (true)
@@ -13228,6 +13229,7 @@
 	        , eventNameProp
 	        , startDateProp
 	        , unitSettings = {unit: 'ms'}
+	        , dateFormat = "M/D/YYYY"
 	        , eventOrder
 	        , filterFunc = function() { return true } // not used
 	        ;
@@ -13260,10 +13262,10 @@
 	            return cmp;
 	        })
 	    }
-	    function Evt(raw, id) {
+	    function Evt(raw, id, dateFormat) {
 	        _.extend(this, raw);
 	        this.eId = id;
-	        this._moment = toDate(this[startDateProp]);
+	        this._moment = toDate(this[startDateProp], dateFormat);
 	        this._entityId = this[entityIdProp];
 	        this._eventName = this[eventNameProp];
 	    }
@@ -13408,7 +13410,7 @@
 	    function Timelines() { }
 	    var makeTimelines = function(data) { // have some old code using this
 	        var evts = _.chain(data)
-	            .map(function(d,i) { return new Evt(d,i); })
+	            .map(function(d,i) { return new Evt(d,i, dateFormat); })
 	            .value();
 	        var timelines = _.supergroup(evts, entityIdProp);
 	        timelines = timelines
@@ -13556,7 +13558,7 @@
 	        }
 	        return newNum;
 	    };
-	    moment.lang('relTime', {
+	    moment.locale('relTime', {
 	        relativeTime : {
 	            future: "%s",
 	            past:   "%s",
@@ -13573,12 +13575,12 @@
 	            yy: "year"
 	        }
 	    });
-	    moment.lang('en');
+	    moment.locale('en');
 	    edata.durationUnits = function(dur) {
-	        var lang = moment.lang();
-	        moment.lang('relTime');
+	        var locale = moment.locale();
+	        moment.locale('relTime');
 	        var unit = moment.duration(dur).humanize();
-	        moment.lang(lang);
+	        moment.locale(locale);
 	        return unit;
 	    };
 	    Timelines.prototype.data = function () {

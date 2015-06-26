@@ -110,7 +110,7 @@ describe('lifeflow and timelines with simple data', function() {
                     expect(_(self.evts)
                             .invoke('toNext',0,'timeline')
                             .map(Math.round).value()
-                        ).toEqual([ 2, 0, 0, 1, 2, 3, 0, 0, 4, 1, 0 ]);
+                        ).toEqual([ 2, 0, 0, 0, 2, 3, 0, 0, 4, 1, 0 ]);
                 });
                 it('should have these day durations', function() {
                     expect(_(self.evts)
