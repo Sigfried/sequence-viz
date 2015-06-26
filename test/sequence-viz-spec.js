@@ -1,23 +1,29 @@
 'use strict()';
 
+var seqViz = require('../sequence-viz.js');
+console.log(seqViz);
+var _ = seqViz.supergroup;
+var evtData = seqViz.evtData;
+var lifeflowData = seqViz.lifeflowData;
 /* global: describe */
 describe('lifeflow and timelines with simple data', function() {
     var self = this;
     var eventNodeWidth = 2 * 1000 * 60 * 60 * 24; // ends up in miliseconds!
     var alignmentLineWidth = 1 * 1000 * 60 * 60 * 24;
-    var csv =   "id,event,date\n" +
-                "1,A,1/1/1950\n" +
-                "1,B,3/2/1950\n" +
-                "1,B,3/12/1950\n" +
-                "2,A,1/1/1960\n" +
-                "2,B,1/16/1960\n" +
-                "2,C,3/31/1960\n" +
-                "2,B,6/29/1960\n" +
-                "3,B,1/1/1970\n" +
-                "3,A,1/11/1970\n" +
-                "3,B,5/11/1970\n" +
-                "3,B,6/10/1970\n";
-    var data = d3.csv.parse(csv);
+    var data = [
+                {id:"1", event:"A", date:"1/1/1950"},
+                {id:"1", event:"B", date:"3/2/1950"},
+                {id:"1", event:"B", date:"3/12/1950"},
+                {id:"2", event:"A", date:"1/1/1960"},
+                {id:"2", event:"B", date:"1/16/1960"},
+                {id:"2", event:"C", date:"3/31/1960"},
+                {id:"2", event:"B", date:"6/29/1960"},
+                {id:"3", event:"B", date:"1/1/1970"},
+                {id:"3", event:"A", date:"1/11/1970"},
+                {id:"3", event:"B", date:"5/11/1970"},
+                {id:"3", event:"B", date:"6/10/1970"}
+                ];
+
     it('should have 11 event records', function() {
         expect(data.length).toEqual(11);
     });
@@ -28,9 +34,10 @@ describe('lifeflow and timelines with simple data', function() {
                     .eventNameProp('event')
                     .startDateProp('date')
             self.timelines = self.edata.makeTimelines(data);
-            self.startRecs = self.timelines
+            self.startRecs = _(self.timelines)
                                 .pluck('records')
-                                .map(_.first);
+                                .map(_.first)
+                                .value();
         });
         it('should be Timelines type', function() {
             expect(self.timelines.whatAmI()).toEqual(self.edata.Timelines.prototype);
@@ -58,37 +65,37 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.timelines.length).toEqual(3);
             });
             it('should be Timeline type', function() {
-                self.timelines.each(function(timeline) {
+                _(self.timelines).each(function(timeline) {
                     expect(timeline.whatAmI()).toEqual(self.edata.Timeline.prototype);
                 });
             });
             it('should have year units across the whole set', function() {
-                self.timelines.each(function(timeline) {
+                _(self.timelines).each(function(timeline) {
                     expect(timeline.unit("universe")).toEqual("year");
                 });
             });
             it('should have month units across individual timelines', function() {
-                self.timelines.each(function(timeline) {
+                _(self.timelines).each(function(timeline) {
                     expect(timeline.unit("timeline")).toEqual("month");
                 });
             });
             describe('Evt objects', function() {
                 beforeEach(function() {
-                    self.evts = self.timelines.pluck('records').flatten();
+                    self.evts = _(self.timelines).pluck('records').flatten().value();
                 });
                 it('should have 10', function() {
                     expect(self.evts.length).toEqual(data.length);
-                    self.evts.each(function(evt) {
+                    _(self.evts).each(function(evt) {
                         expect(evt).toEqual(jasmine.any(self.edata.Evt));
                     });
                 });
                 it('should have year units across the whole set', function() {
-                    self.evts.each(function(evt) {
+                    _(self.evts).each(function(evt) {
                         expect(evt.unit("universe")).toEqual("year");
                     });
                 });
                 it('should have month units across individual timelines', function() {
-                    self.evts.each(function(evt) {
+                    _(self.evts).each(function(evt) {
                         expect(evt.unit("timeline")).toEqual("month");
                     });
                 });
@@ -100,15 +107,15 @@ describe('lifeflow and timelines with simple data', function() {
                     evt.restoreUnitSettings === evt.timeline().restoreUnitSettings === evt.timeline().timelines().restoreUnitSettings;
                 });
                 it('should have these month durations', function() {
-                    expect(self.evts
+                    expect(_(self.evts)
                             .invoke('toNext',0,'timeline')
-                            .map(Math.round)
+                            .map(Math.round).value()
                         ).toEqual([ 2, 0, 0, 1, 2, 3, 0, 0, 4, 1, 0 ]);
                 });
                 it('should have these day durations', function() {
-                    expect(self.evts
+                    expect(_(self.evts)
                             .invoke('toNext',0,'day')
-                            .map(Math.round)
+                            .map(Math.round).value()
                         ).toEqual([ 60, 10, 0, 15, 75, 90, 0, 10, 120, 30, 0 ]);
                 });
             });
@@ -141,7 +148,7 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.nodeTree.leafNodes().rawValues()).toEqual(['B','B','B']);
             });
             it('should have these leafNode paths', function() {
-                expect(self.nodeTree.leafNodes().invoke('namePath')).toEqual(["A/B/B","A/B/C/B","B/A/B/B"]);
+                expect(_(self.nodeTree.leafNodes()).invoke('namePath').value()).toEqual(["A/B/B","A/B/C/B","B/A/B/B"]);
             });
         });
         describe('all nodes', function() {
@@ -149,22 +156,22 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.nodeList.rawValues()).toEqual(['A','B','B','C','B','B','A','B','B']);
             });
             it('should have these paths', function() {
-                expect(self.nodeList.invoke('namePath')).toEqual(
+                expect(_(self.nodeList).invoke('namePath').value()).toEqual(
                     ['A','A/B','A/B/B','A/B/C','A/B/C/B','B','B/A','B/A/B','B/A/B/B']
                 );
             });
             it('should have these x values', function() {
 return;  // fix
-                expect(self.nodeList.invoke('xLogical',
-                    {unit:'day',round:true, withUnit: true, dontConvert:false}))
+                expect(_(self.nodeList).invoke('xLogical',
+                    {unit:'day',round:true, withUnit: true, dontConvert:false}).value())
                 .toEqual( [ '0 days', '75 days', '85 days', '75 days', '165 days', '0 days', '10 days', '130 days', '160 days' ]);
             });
             it('nodes should have dx === mean(node.records.fromPrev)', function() {
-                self.nodeList.each(function(node) {
-                    console.log(node.records.invoke('fromPrev', 0).mean() +
+                _(self.nodeList).each(function(node) {
+                    console.log(_(node.records).invoke('fromPrev', 0).mean().value() +
                         ' === ' + node.dx());
-                    expect(node.records.invoke('fromPrev', 0,
-                        {unit:'day',round:false, withUnit: false}).mean().valueOf())
+                    expect(_(node.records).invoke('fromPrev', 0,
+                        {unit:'day',round:false, withUnit: false}).mean().value())
                     .toBeCloseTo(node.dx(
                         {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
                 });

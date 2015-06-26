@@ -1,3 +1,5 @@
+var nv = require('nvd3');
+
 nv.models.lifeflowChart = function () {
     //============================================================
     // Public Variables with Default Settings

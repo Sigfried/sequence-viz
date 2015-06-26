@@ -1,14 +1,12 @@
-/**
- * ## evtData
- * ###Sigfried Gold <sigfried@sigfried.org>
- * [MIT license](http://sigfried.mit-license.org/)
+/*
+ * # evtData.js
+ * Author: [Sigfried Gold](http://sigfried.org)  
+ * License: [MIT](http://sigfried.mit-license.org/)  
  */
 
 'use strict';
-if (typeof(require) !== "undefined") {
-    var _ = require('supergroup');
-    var moment = require('moment');
-}
+var _ = require('supergroup');
+var moment = require('moment');
 var evtData = function() {
     /** @namespace evtData */
     // public
@@ -133,7 +131,7 @@ var evtData = function() {
     };
     function Timeline(tl) { }
     function makeTimeline(supergroupVal) {
-        var timeline = _.extend(supergroupVal, new Timeline());
+        var timeline = _.extend(supergroupVal, Timeline.prototype);
         sortEvts(timeline.records);
         timeline._evtLookup = {};
         _.each(timeline.records, function (evt, i) {
@@ -195,15 +193,17 @@ var evtData = function() {
 
     function Timelines() { }
     var makeTimelines = function(data) { // have some old code using this
-        var evts = _(data).map(function(d,i) { return new Evt(d,i); });
+        var evts = _(data)
+            .map(function(d,i) { return new Evt(d,i); })
+            .value();
         var timelines = _.supergroup(evts, entityIdProp);
         timelines = timelines
             .map(function(d,i) { 
                 return makeTimeline(d);
             });
         timelines._evtData = evts;
-        _.extend(timelines, new Timelines);
-        timelines.each(function(timeline) {
+        _.extend(timelines, Timelines.prototype);
+        _(timelines).each(function(timeline) {
             timeline.timelines(timelines);
         });
         timelines._unitSettingsStack = [];
@@ -216,14 +216,14 @@ var evtData = function() {
             // this .mox() is one of the places where
             // underscore-unchained will bite you. moment.js doesn't
             // like Number objects
-            this._maxDuration = this.invoke('duration', 'justNumber').max().valueOf();
+            this._maxDuration = _(this).invoke('duration', 'justNumber').max().value();
         return this.dur(this._maxDuration, unit);
     }
     Timelines.prototype.wholeSetDuration = function (unit, recalc) {
         if (typeof this._setDuration === "undefined" || recalc)
             this._setDuration = this.dur(
-                this.invoke('startDate').max().valueOf() -
-                this.invoke('endDate').min().valueOf(), 'justNumber');
+                _(this).invoke('startDate').max().value() -
+                _(this).invoke('endDate').min().value(), 'justNumber');
         return this.dur(this._setDuration, unit);
     };
     /*
@@ -441,3 +441,5 @@ var evtData = function() {
     edata.makeTimelines = makeTimelines;
     return edata;
 }
+module.exports = evtData;
+

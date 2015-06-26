@@ -1,4 +1,10 @@
+/*
+ * # lifeflowData.js
+ * Author: [Sigfried Gold](http://sigfried.org)  
+ * License: [MIT](http://sigfried.mit-license.org/)  
+ */
 'use strict';
+var _ = require('supergroup');
 var lifeflowData = function () {
     function LifeflowNode() {};
     LifeflowNode.prototype.x = function(unit) {
@@ -63,18 +69,18 @@ var lifeflowData = function () {
             res.parent_dy = p.dy();
         }
         if (opts.recsFromPrev) {
-            res.fromPrev = this.records.invoke('fromPrev', 0, opts.unit).sort();
-            res.fromPrevMin = res.fromPrev.min().valueOf();
-            res.fromPrevMax = res.fromPrev.max().valueOf();
-            res.fromPrevMean = res.fromPrev.mean().valueOf();
-            res.fromPrevMedian = res.fromPrev.median().valueOf();
+            res.fromPrev = _(this.records).invoke('fromPrev', 0, opts.unit).sort();
+            res.fromPrevMin = res.fromPrev.min().value();
+            res.fromPrevMax = res.fromPrev.max().value();
+            res.fromPrevMean = res.fromPrev.mean().value();
+            res.fromPrevMedian = res.fromPrev.median().value();
         }
         if (opts.recsToNext) {
-            res.toNext = this.records.invoke('toNext', 0, opts.unit).sort();
-            res.toNextMin = res.toNext.min().valueOf();
-            res.toNextMax = res.toNext.max().valueOf();
-            res.toNextMean = res.toNext.mean().valueOf();
-            res.toNextMedian = res.toNext.median().valueOf();
+            res.toNext = _(this.records).invoke('toNext', 0, opts.unit).sort();
+            res.toNextMin = res.toNext.min().value();
+            res.toNextMax = res.toNext.max().value();
+            res.toNextMean = res.toNext.mean().value();
+            res.toNextMedian = res.toNext.median().value();
         }
         opts.logFunc(opts.stringifyLog ? JSON.stringify(res) : res);
         return opts.stringifyReturn ? JSON.stringify(res) : res;
@@ -90,17 +96,17 @@ var lifeflowData = function () {
         rectWidth = function(lfnode) {
             var recs = lfnode.records;
             if (! (recs && recs.length)) return 0;
-            var durations = recs
+            var durations = _(recs)
                 .map(function(rec) { return toEvtInParent(lfnode,rec); })
                 //.invoke('fromPrev')
-                .compact()
-            return durations.length ? durations.mean().valueOf() : 0;
+                .compact().value();
+            return durations.length ? _(durations).mean().value() : 0;
         },
         nextFunc = function(d) { return d.prev() };
     var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {
         var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
         function preListRecsHook(records) { // group next records, not the ones we start with
-            return records.invoke('next').compact();
+            return _(records).invoke('next').compact().value();
         }
         function addChildren(list, notRoot) {
             if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
@@ -126,15 +132,15 @@ var lifeflowData = function () {
         var lfnodes = addChildren(startRecs);
         //lfnodes = position({children:lfnodes,records:[]}).children;
         var allNodes = lfnodes.flattenTree();
-        allNodes.each(function(lfnode) {
-            _.extend(lfnode, new LifeflowNode());
+        _(allNodes).each(function(lfnode) {
+            _.extend(lfnode, LifeflowNode.prototype);
         });
-        var fakeRoot = supergroup.addListMethods([]).asRootVal();
-        _.extend(fakeRoot, new LifeflowNode());
+        var fakeRoot = _.supergroup([]).asRootVal();
+        _.extend(fakeRoot, LifeflowNode.prototype);
         fakeRoot.children = lfnodes;
-        lfnodes.each(function(d) { d.parent = fakeRoot; });
+        _(lfnodes).each(function(d) { d.parent = fakeRoot; });
         lfnodes = position(fakeRoot).children;
-        lfnodes.each(function(d) { delete d.parent; });
+        _(lfnodes).each(function(d) { delete d.parent; });
 
 
         if (noflatten === "noflatten")
@@ -203,3 +209,4 @@ var lifeflowData = function () {
     }
     return makeNodes;
 }
+module.exports = lifeflowData;
