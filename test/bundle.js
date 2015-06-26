@@ -222,17 +222,15 @@
 	                        {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
 	                });
 	            });
-	            /*
 	            it('should write info about nodes to the console', function() {
 	                self.nodeList.map(function(node) {
-	                    var toNextMean = node.records.invoke('toNext', 0,
-	                        {unit:'day',round:false, withUnit: false}).mean();
-	                    var durs = node.records.invoke('toNext', 0,
-	                        {unit:'day',round:false, withUnit: false});
+	                    var toNextMean = _.mean(_.invoke(node.records, 'toNext', 0,
+	                                        {unit:'day',round:false, withUnit: false}));
+	                    var durs = _.invoke(node.records, 'toNext', 0,
+	                                        {unit:'day',round:false, withUnit: false});
 	                    var info = {
 	                        node: node.namePath(),
-	                        xLogical: node.xLogical(
-	                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
+	                        //xLogical: node.xLogical( {unit:'day',round:false, withUnit: true, dontConvert:false}),
 	                        x: node.x(
 	                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
 	                        dx: node.dx(
@@ -246,7 +244,6 @@
 	                    return 1;
 	                });
 	            });
-	            */
 	        });
 	    });
 	});
@@ -942,7 +939,36 @@
 	    sgCompare: supergroup.compare,
 	    sgCompareValue: supergroup.compareValue,
 	    hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
-	    mean: function(data) { return _.sum(data) / data.length },
+	
+	    // FROM https://gist.github.com/AndreasBriese/1670507
+	    // Return aritmethic mean of the elements
+	    // if an iterator function is given, it is applied before
+	    mean : function(obj, iterator, context) {
+	        if (!iterator && _.isEmpty(obj)) return Infinity;
+	        if (!iterator && _.isArray(obj)) return _.sum(obj)/obj.length;
+	        if (_.isArray(obj) && !_.isEmpty(obj)) return _.sum(obj, iterator, context)/obj.length;
+	    },
+	    
+	    // Return median of the elements 
+	    // if the object element number is odd the median is the 
+	    // object in the "middle" of a sorted array
+	    // in case of an even number, the arithmetic mean of the two elements
+	    // in the middle (in case of characters or strings: obj[n/2-1] ) is returned.
+	    // if an iterator function is provided, it is applied before
+	    median : function(obj, iterator, context) {
+	        if (_.isEmpty(obj)) return Infinity;
+	        var tmpObj = [];
+	        if (!iterator && _.isArray(obj)){
+	        tmpObj = _.clone(obj);
+	        tmpObj.sort(function(f,s){return f-s;});
+	        }else{
+	        _.isArray(obj) && each(obj, function(value, index, list) {
+	            tmpObj.push(iterator ? iterator.call(context, value, index, list) : value);
+	            tmpObj.sort();
+	        });
+	        };
+	        return tmpObj.length%2 ? tmpObj[Math.floor(tmpObj.length/2)] : (_.isNumber(tmpObj[tmpObj.length/2-1]) && _.isNumber(tmpObj[tmpObj.length/2])) ? (tmpObj[tmpObj.length/2-1]+tmpObj[tmpObj.length/2]) /2 : tmpObj[tmpObj.length/2-1];
+	    },
 	});
 	
 	if (true)
@@ -24911,18 +24937,18 @@
 	            res.parent_dy = p.dy();
 	        }
 	        if (opts.recsFromPrev) {
-	            res.fromPrev = _(this.records).invoke('fromPrev', 0, opts.unit).sort();
-	            res.fromPrevMin = res.fromPrev.min().value();
-	            res.fromPrevMax = res.fromPrev.max().value();
-	            res.fromPrevMean = res.fromPrev.mean().value();
-	            res.fromPrevMedian = res.fromPrev.median().value();
+	            res.fromPrev = _.chain(this.records).invoke('fromPrev', 0, opts.unit).sort().value();
+	            res.fromPrevMin = _.min(res.fromPrev);
+	            res.fromPrevMax = _.max(res.fromPrev);
+	            res.fromPrevMean = _.mean(res.fromPrev);
+	            res.fromPrevMedian = _.median(res.fromPrev);
 	        }
 	        if (opts.recsToNext) {
-	            res.toNext = _(this.records).invoke('toNext', 0, opts.unit).sort();
-	            res.toNextMin = res.toNext.min().value();
-	            res.toNextMax = res.toNext.max().value();
-	            res.toNextMean = res.toNext.mean().value();
-	            res.toNextMedian = res.toNext.median().value();
+	            res.toNext = _.chain(this.records).invoke('toNext', 0, opts.unit).sort().value();
+	            res.toNextMin = _.min(res.toNext);
+	            res.toNextMax = _.max(res.toNext);
+	            res.toNextMean = _.mean(res.toNext);
+	            res.toNextMedian = _.median(res.toNext);
 	        }
 	        opts.logFunc(opts.stringifyLog ? JSON.stringify(res) : res);
 	        return opts.stringifyReturn ? JSON.stringify(res) : res;
@@ -24942,7 +24968,7 @@
 	                .map(function(rec) { return toEvtInParent(lfnode,rec); })
 	                //.invoke('fromPrev')
 	                .compact().value();
-	            return durations.length ? _.chain(durations).mean().value() : 0;
+	            return durations.length ? _.mean(durations) : 0;
 	        },
 	        nextFunc = function(d) { return d.prev() };
 	    var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {

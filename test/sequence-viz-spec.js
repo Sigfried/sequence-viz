@@ -176,17 +176,15 @@ return;  // fix
                         {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
                 });
             });
-            /*
             it('should write info about nodes to the console', function() {
                 self.nodeList.map(function(node) {
-                    var toNextMean = node.records.invoke('toNext', 0,
-                        {unit:'day',round:false, withUnit: false}).mean();
-                    var durs = node.records.invoke('toNext', 0,
-                        {unit:'day',round:false, withUnit: false});
+                    var toNextMean = _.mean(_.invoke(node.records, 'toNext', 0,
+                                        {unit:'day',round:false, withUnit: false}));
+                    var durs = _.invoke(node.records, 'toNext', 0,
+                                        {unit:'day',round:false, withUnit: false});
                     var info = {
                         node: node.namePath(),
-                        xLogical: node.xLogical(
-                            {unit:'day',round:false, withUnit: true, dontConvert:false}),
+                        //xLogical: node.xLogical( {unit:'day',round:false, withUnit: true, dontConvert:false}),
                         x: node.x(
                             {unit:'day',round:false, withUnit: true, dontConvert:false}),
                         dx: node.dx(
@@ -200,7 +198,6 @@ return;  // fix
                     return 1;
                 });
             });
-            */
         });
     });
 });

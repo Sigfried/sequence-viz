@@ -69,18 +69,18 @@ var lifeflowData = function () {
             res.parent_dy = p.dy();
         }
         if (opts.recsFromPrev) {
-            res.fromPrev = _(this.records).invoke('fromPrev', 0, opts.unit).sort();
-            res.fromPrevMin = res.fromPrev.min().value();
-            res.fromPrevMax = res.fromPrev.max().value();
-            res.fromPrevMean = res.fromPrev.mean().value();
-            res.fromPrevMedian = res.fromPrev.median().value();
+            res.fromPrev = _.chain(this.records).invoke('fromPrev', 0, opts.unit).sort().value();
+            res.fromPrevMin = _.min(res.fromPrev);
+            res.fromPrevMax = _.max(res.fromPrev);
+            res.fromPrevMean = _.mean(res.fromPrev);
+            res.fromPrevMedian = _.median(res.fromPrev);
         }
         if (opts.recsToNext) {
-            res.toNext = _(this.records).invoke('toNext', 0, opts.unit).sort();
-            res.toNextMin = res.toNext.min().value();
-            res.toNextMax = res.toNext.max().value();
-            res.toNextMean = res.toNext.mean().value();
-            res.toNextMedian = res.toNext.median().value();
+            res.toNext = _.chain(this.records).invoke('toNext', 0, opts.unit).sort().value();
+            res.toNextMin = _.min(res.toNext);
+            res.toNextMax = _.max(res.toNext);
+            res.toNextMean = _.mean(res.toNext);
+            res.toNextMedian = _.median(res.toNext);
         }
         opts.logFunc(opts.stringifyLog ? JSON.stringify(res) : res);
         return opts.stringifyReturn ? JSON.stringify(res) : res;
@@ -100,7 +100,7 @@ var lifeflowData = function () {
                 .map(function(rec) { return toEvtInParent(lfnode,rec); })
                 //.invoke('fromPrev')
                 .compact().value();
-            return durations.length ? _.chain(durations).mean().value() : 0;
+            return durations.length ? _.mean(durations) : 0;
         },
         nextFunc = function(d) { return d.prev() };
     var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {
