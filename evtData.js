@@ -5,8 +5,10 @@
  */
 
 'use strict';
-var _ = require('supergroup');
-var moment = require('moment');
+if (typeof require !== "undefined") {
+    var _ = require('supergroup');
+    var moment = require('moment');
+}
 var evtData = function() {
     /** @namespace evtData */
     // public
@@ -441,5 +443,7 @@ var evtData = function() {
     edata.makeTimelines = makeTimelines;
     return edata;
 }
-module.exports = evtData;
+if (typeof module !== "undefined") {
+    module.exports = evtData;
+}
 

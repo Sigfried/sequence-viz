@@ -1,8 +1,8 @@
 module.exports = {
-    entry: './sequence-viz.js',
+    entry: './main.js',
     output: {
         path: './',
-        filename: 'bundle.js',
+        filename: 'sequence-viz.js',
     },
     resolve: {
         alias: { moment: 'moment/moment.js'},
