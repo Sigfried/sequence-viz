@@ -5,14 +5,17 @@ module.exports = {
         filename: './bundle.js',
     },
     resolve: {
-        alias: { moment: 'moment/moment.js'},
-        modulesDirectories: ['../node_modules'],
+        alias: { 
+            moment: './node_modules/moment/moment.js',
+            lodash: './node_modules/lodash/index.js'
+        },
+        modulesDirectories: ['..','../node_modules'],
     },
     //devtool:"eval",
     devtool: "source-map",
     //watch: true,
     colors: true,
     progress: true,
-    cache: true,
+    cache: false,
     debug: true
 };

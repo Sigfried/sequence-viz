@@ -195,7 +195,7 @@ var evtData = function() {
 
     function Timelines() { }
     var makeTimelines = function(data) { // have some old code using this
-        var evts = _(data)
+        var evts = _.chain(data)
             .map(function(d,i) { return new Evt(d,i); })
             .value();
         var timelines = _.supergroup(evts, entityIdProp);
@@ -205,7 +205,7 @@ var evtData = function() {
             });
         timelines._evtData = evts;
         _.extend(timelines, Timelines.prototype);
-        _(timelines).each(function(timeline) {
+        _.each(timelines, function(timeline) {
             timeline.timelines(timelines);
         });
         timelines._unitSettingsStack = [];
@@ -218,14 +218,14 @@ var evtData = function() {
             // this .mox() is one of the places where
             // underscore-unchained will bite you. moment.js doesn't
             // like Number objects
-            this._maxDuration = _(this).invoke('duration', 'justNumber').max().value();
+            this._maxDuration = _.chain(this).invoke('duration', 'justNumber').max().value();
         return this.dur(this._maxDuration, unit);
     }
     Timelines.prototype.wholeSetDuration = function (unit, recalc) {
         if (typeof this._setDuration === "undefined" || recalc)
             this._setDuration = this.dur(
-                _(this).invoke('startDate').max().value() -
-                _(this).invoke('endDate').min().value(), 'justNumber');
+                _.chain(this).invoke('startDate').max().value() -
+                _.chain(this).invoke('endDate').min().value(), 'justNumber');
         return this.dur(this._setDuration, unit);
     };
     /*
@@ -317,7 +317,9 @@ var evtData = function() {
         return result;
     }
     Evt.prototype.dur = function(num,unit) { return this.timeline().dur(num,unit) };
-    Timeline.prototype.dur = function(num,unit) { return this.timelines().dur(num,unit) };
+    Timeline.prototype.dur = function(num,unit) { 
+        return this.timelines().dur(num,unit) 
+    };
     // @method formatDur
     // report durations according to current settings
     // @param {number} num the duration to express in certain units

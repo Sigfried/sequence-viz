@@ -96,17 +96,17 @@ var lifeflowData = function () {
         rectWidth = function(lfnode) {
             var recs = lfnode.records;
             if (! (recs && recs.length)) return 0;
-            var durations = _(recs)
+            var durations = _.chain(recs)
                 .map(function(rec) { return toEvtInParent(lfnode,rec); })
                 //.invoke('fromPrev')
                 .compact().value();
-            return durations.length ? _(durations).mean().value() : 0;
+            return durations.length ? _.chain(durations).mean().value() : 0;
         },
         nextFunc = function(d) { return d.prev() };
     var makeNodes = function(startRecs, noflatten, backwards, maxDepth) {
         var groupKeyName = (backwards ? 'prev' : 'next') + '_' + eventNameProp;
         function preListRecsHook(records) { // group next records, not the ones we start with
-            return _(records).invoke('next').compact().value();
+            return _.chain(records).invoke('next').compact().value();
         }
         function addChildren(list, notRoot) {
             if (maxDepth && list.length && list[0].depth && list[0].depth >= maxDepth)
@@ -132,15 +132,15 @@ var lifeflowData = function () {
         var lfnodes = addChildren(startRecs);
         //lfnodes = position({children:lfnodes,records:[]}).children;
         var allNodes = lfnodes.flattenTree();
-        _(allNodes).each(function(lfnode) {
+        _.each(allNodes, function(lfnode) {
             _.extend(lfnode, LifeflowNode.prototype);
         });
         var fakeRoot = _.supergroup([]).asRootVal();
         _.extend(fakeRoot, LifeflowNode.prototype);
         fakeRoot.children = lfnodes;
-        _(lfnodes).each(function(d) { d.parent = fakeRoot; });
+        _.each(lfnodes, function(d) { d.parent = fakeRoot; });
         lfnodes = position(fakeRoot).children;
-        _(lfnodes).each(function(d) { delete d.parent; });
+        _.each(lfnodes, function(d) { delete d.parent; });
 
 
         if (noflatten === "noflatten")

@@ -33,11 +33,12 @@
     "d3": "^3.1.6",
     "lodash": "^3.9.3",
     "moment": "^2.5.1",
-    "supergroup": "^1.0.8"
+    "supergroup": "^1.0.9"
   },
   "devDependencies": {
     "jsdoc": "^3.3.0",
     "testem": "^0.6.39",
-    "webpack": "^1.0.5"
+    "webpack": "^1.0.5",
+    "webpack-dev-server": "^1.9.0"
   }
 }

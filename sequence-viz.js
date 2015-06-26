@@ -15,3 +15,5 @@ module.exports = {
     //timelines : require('./timelines.js'),
     //timelinesChart : require('./timelinesChart.js')
 }
+
+console.log(module.exports.evtData);
