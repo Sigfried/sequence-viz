@@ -7,7 +7,8 @@ module.exports = {
     resolve: {
         alias: { 
             moment: './node_modules/moment/moment.js',
-            lodash: './node_modules/lodash/index.js'
+            lodash: './node_modules/lodash/index.js',
+            underscore: './node_modules/underscore/underscore.js'
         },
         modulesDirectories: ['..','../node_modules'],
     },

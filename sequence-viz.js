@@ -5,6 +5,7 @@
  * Version: 0.0.2
  */
 
+window.underscore = "underscore";
 module.exports = {
     supergroup : require('supergroup'),
     evtData : require('./evtData.js'),

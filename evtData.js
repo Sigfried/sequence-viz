@@ -53,12 +53,13 @@ var evtData = function() {
         _.extend(this, raw);
         this.eId = id;
         this._moment = toDate(this[startDateProp], dateFormat);
+        if (!this._moment.isValid())
+            fail('invalid date');
         this._entityId = this[entityIdProp];
         this._eventName = this[eventNameProp];
     }
     Evt.prototype.id = function() {
-        fail('fix ref to _dt');
-        return [this._entityId, this._eventName, this._dt].join('/');
+        return [this.entityId(), this.eventName(), this.dt()].join('/');
     }
     Evt.prototype.dt = function() {
         return this._moment;
@@ -374,8 +375,8 @@ var evtData = function() {
         return this._evtData;
     };
     Timelines.prototype.sort = function (func) {
-        fail('is this called?'); // not from lifeflow...will test when i get to it
-        return supergroup.addListMethods(this.slice(0).sort(func));
+        console.warn('is this called?'); // not from lifeflow...will test when i get to it
+        return _.addSupergroupMethods(this.slice(0).sort(func));
     };
     Timelines.prototype.evtDurationSortFunc = function (func) {
         return function(a,b) {
@@ -428,6 +429,11 @@ var evtData = function() {
     edata.eventOrder = function (_) {
         if (!arguments.length) return eventOrder;
         eventOrder = _;
+        return edata;
+    };
+    edata.dateFormat = function (_) {
+        if (!arguments.length) return dateFormat;
+        dateFormat = _;
         return edata;
     };
     edata.filterFunc = function (_) {

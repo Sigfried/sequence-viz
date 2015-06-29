@@ -34,7 +34,7 @@ describe('lifeflow and timelines with simple data', function() {
                     .eventNameProp('event')
                     .startDateProp('date')
             self.timelines = self.edata.makeTimelines(data);
-            self.startRecs = _(self.timelines)
+            self.startRecs = _.chain(self.timelines)
                                 .pluck('records')
                                 .map(_.first)
                                 .value();
@@ -65,39 +65,39 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.timelines.length).toEqual(3);
             });
             it('should be Timeline type', function() {
-                _(self.timelines).each(function(timeline) {
+                _.chain(self.timelines).each(function(timeline) {
                     expect(timeline.whatAmI()).toEqual(self.edata.Timeline.prototype);
-                });
+                }).value();
             });
             it('should have year units across the whole set', function() {
-                _(self.timelines).each(function(timeline) {
+                _.chain(self.timelines).each(function(timeline) {
                     expect(timeline.unit("universe")).toEqual("year");
-                });
+                }).value();
             });
             it('should have month units across individual timelines', function() {
-                _(self.timelines).each(function(timeline) {
+                _.chain(self.timelines).each(function(timeline) {
                     expect(timeline.unit("timeline")).toEqual("month");
-                });
+                }).value();
             });
             describe('Evt objects', function() {
                 beforeEach(function() {
-                    self.evts = _(self.timelines).pluck('records').flatten().value();
+                    self.evts = _.chain(self.timelines).pluck('records').flatten().value();
                 });
                 it('should have 10', function() {
                     expect(self.evts.length).toEqual(data.length);
-                    _(self.evts).each(function(evt) {
+                    _.chain(self.evts).each(function(evt) {
                         expect(evt).toEqual(jasmine.any(self.edata.Evt));
-                    });
+                    }).value();
                 });
                 it('should have year units across the whole set', function() {
-                    _(self.evts).each(function(evt) {
+                    _.chain(self.evts).each(function(evt) {
                         expect(evt.unit("universe")).toEqual("year");
-                    });
+                    }).value();
                 });
                 it('should have month units across individual timelines', function() {
-                    _(self.evts).each(function(evt) {
+                    _.chain(self.evts).each(function(evt) {
                         expect(evt.unit("timeline")).toEqual("month");
-                    });
+                    }).value();
                 });
                 it('should refer certain methods up to Timelines', function() {
                     var evt = self.evts[0];
@@ -107,13 +107,13 @@ describe('lifeflow and timelines with simple data', function() {
                     evt.restoreUnitSettings === evt.timeline().restoreUnitSettings === evt.timeline().timelines().restoreUnitSettings;
                 });
                 it('should have these month durations', function() {
-                    expect(_(self.evts)
+                    expect(_.chain(self.evts)
                             .invoke('toNext',0,'timeline')
                             .map(Math.round).value()
                         ).toEqual([ 2, 0, 0, 0, 2, 3, 0, 0, 4, 1, 0 ]);
                 });
                 it('should have these day durations', function() {
-                    expect(_(self.evts)
+                    expect(_.chain(self.evts)
                             .invoke('toNext',0,'day')
                             .map(Math.round).value()
                         ).toEqual([ 60, 10, 0, 15, 75, 90, 0, 10, 120, 30, 0 ]);
@@ -148,7 +148,7 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.nodeTree.leafNodes().rawValues()).toEqual(['B','B','B']);
             });
             it('should have these leafNode paths', function() {
-                expect(_(self.nodeTree.leafNodes()).invoke('namePath').value()).toEqual(["A/B/B","A/B/C/B","B/A/B/B"]);
+                expect(_.chain(self.nodeTree.leafNodes()).invoke('namePath').value()).toEqual(["A/B/B","A/B/C/B","B/A/B/B"]);
             });
         });
         describe('all nodes', function() {
@@ -156,21 +156,21 @@ describe('lifeflow and timelines with simple data', function() {
                 expect(self.nodeList.rawValues()).toEqual(['A','B','B','C','B','B','A','B','B']);
             });
             it('should have these paths', function() {
-                expect(_(self.nodeList).invoke('namePath').value()).toEqual(
+                expect(_.chain(self.nodeList).invoke('namePath').value()).toEqual(
                     ['A','A/B','A/B/B','A/B/C','A/B/C/B','B','B/A','B/A/B','B/A/B/B']
                 );
             });
             it('should have these x values', function() {
 return;  // fix
-                expect(_(self.nodeList).invoke('xLogical',
+                expect(_.chain(self.nodeList).invoke('xLogical',
                     {unit:'day',round:true, withUnit: true, dontConvert:false}).value())
                 .toEqual( [ '0 days', '75 days', '85 days', '75 days', '165 days', '0 days', '10 days', '130 days', '160 days' ]);
             });
             it('nodes should have dx === mean(node.records.fromPrev)', function() {
-                _(self.nodeList).each(function(node) {
-                    console.log(_(node.records).invoke('fromPrev', 0).mean().value() +
+                _.chain(self.nodeList).each(function(node) {
+                    console.log(_.chain(node.records).invoke('fromPrev', 0).mean().value() +
                         ' === ' + node.dx());
-                    expect(_(node.records).invoke('fromPrev', 0,
+                    expect(_.chain(node.records).invoke('fromPrev', 0,
                         {unit:'day',round:false, withUnit: false}).mean().value())
                     .toBeCloseTo(node.dx(
                         {unit:'day',round:false, withUnit: false, dontConvert:false}), 7);
