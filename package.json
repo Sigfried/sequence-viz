@@ -1,7 +1,7 @@
 {
   "name": "sequence-viz",
   "main": "sequence-viz.js",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "library for manipulating event data.",
   "keywords": [
     "groups",
